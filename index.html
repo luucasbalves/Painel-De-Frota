@@ -296,15 +296,19 @@ function render(){
     // FILTRO DE BUSCA
     let filtrados = motoristas.filter(m => {
 
-        if(!busca) return true;
+    if(!busca) return true;
 
-       return (
-   		m.nome.toLowerCase().includes(busca) ||
-   		m.placa.toLowerCase().includes(busca) ||
-  		(m.obra && m.obra.toLowerCase().includes(busca))
-        );
+    const nome = (m.nome || "").toLowerCase();
+    const placa = (m.placa || "").toLowerCase();
+    const obra = (m.obra || "").toLowerCase();
 
-    });
+    return (
+        nome.includes(busca) ||
+        placa.includes(busca) ||
+        obra.includes(busca)
+    );
+
+});
 
     // OFICINA
     const listaOficina = filtrados.filter(m => m.status === "oficina");
@@ -334,17 +338,16 @@ if(!buscando || listaOficina.length > 0){
     // OBRAS
     obras.forEach(o => {
 
-    if(!o.oculta){
+    if(o.oculta) return;
 
-        const lista = filtrados.filter(m =>
-            m.obra === o.nome && m.status !== "oficina"
-        );
+    const lista = filtrados.filter(m =>
+        (m.obra || "") === o.nome && m.status !== "oficina"
+    );
 
-        // se estiver buscando, mostra apenas obras que tenham resultado
-        if(buscando && lista.length === 0) return;
+    if(buscando && lista.length === 0) return;
 
+    if(lista.length > 0 || !buscando){
         criarColunaRetratil(o.nome.toUpperCase(), lista);
-
     }
 
 });
@@ -464,6 +467,7 @@ function excluirMotorista(i){ if(confirm("Excluir?")){ motoristas.splice(i,1); s
 
 window.onload = () => {
     el("busca").oninput = render;
+	el("busca").addEventListener("keyup", render);
 };
 
 function editarNomeObra(i){
