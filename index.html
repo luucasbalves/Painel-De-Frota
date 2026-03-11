@@ -247,19 +247,25 @@ function render(){
     renderDashboard();
     renderMunk();
 
-    let filtrados = motoristas.filter(m => 
-        m.nome.toLowerCase().includes(busca) || 
+    let filtrados = motoristas.filter(m => {
+    if(!busca) return true;
+
+    return (
+        m.nome.toLowerCase().includes(busca) ||
         m.placa.toLowerCase().includes(busca)
     );
 
     criarColunaRetratil("OFICINA", filtrados.filter(m => m.status === "oficina"));
 
     const motoristasSemObraOuOculta = filtrados.filter(m => {
-        if (m.status === "oficina") return false;
-        if (!m.obra) return true;
-        const obraRelacionada = obras.find(o => o.nome === m.obra);
-        return (obraRelacionada && obraRelacionada.oculta);
-    });
+    if(m.status === "oficina") return false;
+
+    if(m.obra === "SEM PROGRAMAÇÃO" || !m.obra)
+        return true;
+
+    const obraRelacionada = obras.find(o => o.nome === m.obra);
+    return obraRelacionada && obraRelacionada.oculta;
+	});
 
     criarColunaRetratil("SEM PROGRAMAÇÃO", motoristasSemObraOuOculta);
 
@@ -308,7 +314,7 @@ function soltar(e,destino){
         const mot = prompt("Motivo manutenção:",m.obsOficina||"");
         if(mot!==null){ m.status="oficina"; m.obsOficina=mot; m.obra=null; }
     }else{
-        m.status="ativo"; m.obsOficina=""; m.obra=(destino==="SEM PROGRAMAÇÃO") ? null : destino;
+        m.status="ativo"; m.obsOficina=""; m.obra=(destino==="SEM PROGRAMAÇÃO") ? "SEM PROGRAMAÇÃO" : destino;
     }
     salvar();
 }
@@ -324,8 +330,24 @@ function abrirMotoristas(){
 }
 
 function novoMotorista(){
-    const n=prompt("Nome:"); const p=prompt("Placa:"); const t=prompt("Telefone:");
-    if(n&&p){ motoristas.push({nome:n.toUpperCase(), placa:p.toUpperCase(), telefone:t||"", status:"ativo", obra:null}); salvar(); abrirMotoristas(); }
+    const n = prompt("Nome:");
+    const p = prompt("Placa:");
+    const t = prompt("Telefone:");
+
+    if(n && p){
+        motoristas.push({
+            nome: n.toUpperCase(),
+            placa: p.toUpperCase(),
+            telefone: t || "",
+            status: "ativo",
+            obra: "SEM PROGRAMAÇÃO",
+            obsOficina: ""
+        });
+
+        salvar();
+        render();
+        abrirMotoristas();
+    }
 }
 
 function editarMotorista(i){
