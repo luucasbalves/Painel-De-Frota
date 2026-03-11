@@ -537,6 +537,9 @@ col.ondragover = e=>e.preventDefault();
     const aberto = colunasAbertas[nome] || false;
     col.innerHTML=`<h3 onclick="toggleColuna('${nome}')"><div>${nome} (${lista.length})</div><span>${aberto?"▲":"▼"}</span></h3><div class="corpo-coluna ${aberto?"aberto":""}"></div>`;
     const corpo = col.querySelector(".corpo-coluna");
+	corpo.addEventListener("dragover",(e)=>{
+    e.preventDefault();
+});
 	const titulo = col.querySelector("h3");
 
 	titulo.ondragover = e=>{
@@ -560,7 +563,7 @@ if(!modoEditarObras){
         card.className="caminhao";
         card.draggable=(modo==="admin");
         card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
-        card.ondragstart=e=>{
+        card.ondragstart = (e)=>{
     e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
     e.dataTransfer.effectAllowed = "move";
 };
@@ -571,7 +574,12 @@ if(!modoEditarObras){
 
 function soltar(e,destino){
 
-    const m = motoristas[e.dataTransfer.getData("text/plain")];
+    e.preventDefault();   // 🔴 ESSENCIAL
+
+    const index = e.dataTransfer.getData("text/plain");
+    const m = motoristas[index];
+
+    if(!m) return;
 
     const origem = m.obra || "SEM PROGRAMAÇÃO";
 
@@ -591,23 +599,22 @@ function soltar(e,destino){
 
         m.status="ativo";
         m.obsOficina="";
+
         if(destino==="SEM PROGRAMAÇÃO"){
-    m.obra="SEM PROGRAMAÇÃO";
-}
-else if(destino==="PEDREIRA"){
-    m.obra="PEDREIRA";
-}
-else{
-    m.obra=destino;
-}
+            m.obra="SEM PROGRAMAÇÃO";
+        }
+        else if(destino==="PEDREIRA"){
+            m.obra="PEDREIRA";
+        }
+        else{
+            m.obra=destino;
+        }
 
         registrarHistorico(m, origem, destino);
-
     }
 
     salvar();
-	render();
-
+    render();
 }
 
 function abrirMotoristas(){
