@@ -167,7 +167,28 @@
     </div>
 </div>
 
-<div id="modalMotoristas" class="modal"><div class="modalBox"><div class="modalHeader"><h2>MOTORISTAS</h2><button onclick="novoMotorista()" class="btn-success">+ NOVO</button></div><div id="listaMotoristas" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
+<div id="modalMotoristas" class="modal">
+<div class="modalBox">
+
+<div class="modalHeader">
+<h2>MOTORISTAS</h2>
+<button onclick="novoMotorista()" class="btn-success">+ NOVO</button>
+</div>
+
+<input 
+id="buscaMotorista"
+placeholder="🔍 Buscar motorista..."
+style="width:100%;padding:8px;margin:10px 0"
+oninput="filtrarMotoristas()"
+>
+
+<div id="listaMotoristas" class="listaScroll"></div>
+
+<button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button>
+
+</div>
+</div>
+
 <div id="modalObras" class="modal">
 <div class="modalBox">
 
@@ -443,13 +464,15 @@ function soltar(e,destino){
 }
 
 function abrirMotoristas(){
+
     el("modalMotoristas").style.display="flex";
-    const lista = el("listaMotoristas"); lista.innerHTML="";
-    motoristas.forEach((m,i)=>{
-        const div=document.createElement("div"); div.className="itemLista";
-        div.innerHTML=`<div><strong>${m.nome}</strong><br><small>${m.placa}</small></div><div class="acoes"><button class="btn-mini" onclick="editarMotorista(${i})">✏️</button><button class="btn-mini" onclick="editarTelefone(${i})">📞</button><button class="btn-mini btn-danger" onclick="excluirMotorista(${i})">❌</button></div>`;
-        lista.appendChild(div);
-    });
+
+    el("buscaMotorista").value="";
+
+    filtrarMotoristas();
+
+    el("buscaMotorista").focus();
+
 }
 
 function novoMotorista(){
@@ -489,6 +512,59 @@ window.onload = () => {
     el("busca").oninput = render;
 	el("busca").addEventListener("keyup", render);
 };
+function filtrarMotoristas(){
+
+    const busca = (el("buscaMotorista").value || "").toLowerCase();
+
+    const lista = el("listaMotoristas");
+
+    lista.innerHTML = "";
+
+    const filtrados = motoristas.filter(m =>
+        (m.nome || "").toLowerCase().includes(busca) ||
+        (m.placa || "").toLowerCase().includes(busca) ||
+        (m.telefone || "").includes(busca)
+    );
+
+    if(filtrados.length === 0){
+
+        lista.innerHTML = "<p>Nenhum motorista encontrado</p>";
+
+        return;
+
+    }
+
+    filtrados.forEach(m=>{
+
+        const i = motoristas.indexOf(m);
+
+        const div = document.createElement("div");
+
+        div.className="itemLista";
+
+        div.innerHTML=`
+        <div>
+            <strong>${m.nome}</strong>
+            <br>
+            <small>${m.placa}</small>
+        </div>
+
+        <div class="acoes">
+
+        <button class="btn-mini" onclick="editarMotorista(${i})">✏️</button>
+
+        <button class="btn-mini" onclick="editarTelefone(${i})">📞</button>
+
+        <button class="btn-mini btn-danger" onclick="excluirMotorista(${i})">❌</button>
+
+        </div>
+        `;
+
+        lista.appendChild(div);
+
+    });
+
+}	
 
 function editarNomeObra(i){
     const novoNome = prompt("Novo nome para a obra:", obras[i].nome);
@@ -502,64 +578,15 @@ function editarNomeObra(i){
     }
 }
 
-function abrirObras(){
-
-    const modal = el("modalObras");
-    const lista = el("listaObras");
-
-    modal.style.display = "flex";
-    lista.innerHTML = "";
-
-    if(obras.length === 0){
-
-        lista.innerHTML = "<p>Nenhuma obra cadastrada</p>";
-        return;
-
-    }
-
-    obras.forEach((o,i)=>{
-
-        const div = document.createElement("div");
-        div.className = "itemLista";
-
-        div.innerHTML = `
-        <div>
-            <strong>${o.nome}</strong>
-            ${o.lat ? "<br><small>📍 Localização cadastrada</small>" : ""}
-        </div>
-
-        <div class="acoes">
-
-            <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
-
-            <button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
-
-            <button class="btn-mini" onclick="toggleOculta(${i})">
-            ${o.oculta ? "Mostrar" : "Ocultar"}
-            </button>
-
-            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
-
-        </div>
-        `;
-
-        lista.appendChild(div);
-
-    });
-
-	el("buscaObra").value="";
-	filtrarObras();
-
-}
 function filtrarObras(){
 
-    const busca = el("buscaObra").value.toLowerCase();
+    const busca = (el("buscaObra").value || "").toLowerCase();
 
     const lista = el("listaObras");
     lista.innerHTML = "";
 
     const filtradas = obras.filter(o =>
-        o.nome.toLowerCase().includes(busca)
+        (o.nome || "").toLowerCase().includes(busca)
     );
 
     if(filtradas.length === 0){
@@ -599,7 +626,18 @@ function filtrarObras(){
 
     });
 
-}	
+}
+function abrirObras(){
+
+    el("modalObras").style.display="flex";
+
+    el("buscaObra").value="";
+
+    filtrarObras();
+
+    el("buscaObra").focus();
+
+}
 function abrirMapaVisitante(){
 
     const ativas = obras.filter(o => !o.oculta && o.lat && o.lng);
@@ -697,7 +735,7 @@ function abrirHistorico(){
         data: data.toLocaleString("pt-BR")
     });
 
-    if(historico.length > 100){
+    if(historico.length > 10000){
         historico.pop();
     }
 
