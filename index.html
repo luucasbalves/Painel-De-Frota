@@ -254,6 +254,7 @@ function render(){
         m.nome.toLowerCase().includes(busca) ||
         m.placa.toLowerCase().includes(busca)
     );
+	});
 
     criarColunaRetratil("OFICINA", filtrados.filter(m => m.status === "oficina"));
 
