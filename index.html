@@ -133,7 +133,9 @@
             <button onclick="abrirMotoristas()" id="btnMotoristas">Motoristas</button>
             <button onclick="abrirObras()" id="btnObras">Obras</button>
             <button onclick="abrirCentralWhats()" id="btnWhats" class="btn-success whatsapp">📲 Central Whats</button>
+			<button onclick="abrirHistorico()">📊 Histórico</button>
             <button class="btn-danger" onclick="location.reload()">Sair</button>
+			<button class="btn-mini" onclick="abrirMapa(${i})">🗺️</button>
         </div>
     </header>
 
@@ -161,7 +163,16 @@
 <div id="modalMotoristas" class="modal"><div class="modalBox"><div class="modalHeader"><h2>MOTORISTAS</h2><button onclick="novoMotorista()" class="btn-success">+ NOVO</button></div><div id="listaMotoristas" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 <div id="modalObras" class="modal"><div class="modalBox"><div class="modalHeader"><h2>OBRAS</h2><button onclick="novaObra()" class="btn-success">+ NOVA</button></div><div id="listaObras" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 <div id="modalWhats" class="modal"><div class="modalBox whatsappBox"><div class="modalHeader"><h2>📲 Central de Envios</h2></div><div id="listaWhats" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
+<div id="modalHistorico" class="modal">
+<div class="modalBox">
+<h2>📊 Histórico da Frota</h2>
 
+<div id="listaHistorico" style="max-height:400px;overflow:auto"></div>
+
+<button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button>
+
+</div>
+</div>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDom32F_eZw0mTSsb1U0UHqlJXH8TcslGA",
@@ -319,6 +330,10 @@ function criarColunaRetratil(nome,lista){
     const aberto = colunasAbertas[nome] || false;
     col.innerHTML=`<h3 onclick="toggleColuna('${nome}')"><div>${nome} (${lista.length})</div><span>${aberto?"▲":"▼"}</span></h3><div class="corpo-coluna ${aberto?"aberto":""}"></div>`;
     const corpo = col.querySelector(".corpo-coluna");
+	const titulo = col.querySelector("h3");
+
+	titulo.ondragover = e=>e.preventDefault();
+	titulo.ondrop = e=>soltar(e,nome);
     corpo.ondragover=e=>e.preventDefault();
     corpo.ondrop=e=>soltar(e,nome);
     lista.forEach(m=>{
@@ -333,14 +348,35 @@ function criarColunaRetratil(nome,lista){
 }
 
 function soltar(e,destino){
+
     const m = motoristas[e.dataTransfer.getData("index")];
+
+    const origem = m.obra || "SEM PROGRAMAÇÃO";
+
     if(destino==="OFICINA"){
+
         const mot = prompt("Motivo manutenção:",m.obsOficina||"");
-        if(mot!==null){ m.status="oficina"; m.obsOficina=mot; m.obra=null; }
+
+        if(mot!==null){
+            m.status="oficina";
+            m.obsOficina=mot;
+            m.obra=null;
+
+            registrarHistorico(m, origem, "OFICINA");
+        }
+
     }else{
-        m.status="ativo"; m.obsOficina=""; m.obra=(destino==="SEM PROGRAMAÇÃO") ? "SEM PROGRAMAÇÃO" : destino;
+
+        m.status="ativo";
+        m.obsOficina="";
+        m.obra=(destino==="SEM PROGRAMAÇÃO") ? "SEM PROGRAMAÇÃO" : destino;
+
+        registrarHistorico(m, origem, destino);
+
     }
+
     salvar();
+
 }
 
 function abrirMotoristas(){
@@ -458,7 +494,51 @@ function renderMunk(){
         cal.appendChild(dia);
     }
 }
+function abrirHistorico(){
 
+    el("modalHistorico").style.display="flex";
+
+    const lista = el("listaHistorico");
+
+    lista.innerHTML="";
+
+    historico.forEach(h=>{
+
+        const div=document.createElement("div");
+
+        div.className="itemLista";
+
+        div.innerHTML=`
+        <div>
+        <strong>${h.motorista}</strong><br>
+        <small>${h.de} → ${h.para}</small>
+        </div>
+        <div>${h.data}</div>
+        `;
+
+        lista.appendChild(div);
+
+    });
+
+}
+function abrirMapa(i){
+
+    const o = obras[i];
+
+    if(!o.lat || !o.lng){
+
+        alert("Obra sem localização");
+
+        return;
+
+    }
+
+    window.open(
+        `https://maps.google.com/?q=${o.lat},${o.lng}`,
+        "_blank"
+    );
+
+}
 function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
 el("pipa-txt").onchange = salvar;
