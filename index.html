@@ -345,7 +345,7 @@ function render(){
 
 function renderDashboard(){
     const ofi = motoristas.filter(m=>m.status==="oficina").length;
-    const livre = motoristas.filter(m=>!m.obra && m.status!=="oficina").length;
+    const livre = motoristas.filter(m=>m.obra==="SEM PROGRAMAÇÃO" && m.status!=="oficina").length;
     const ativas = obras.filter(o=>!o.oculta).length;
     el("dashboard").innerHTML=`
         <div class="cardStat"><h3>${motoristas.length}</h3><span>Frota</span></div>
@@ -407,6 +407,7 @@ function soltar(e,destino){
     }
 
     salvar();
+	render();
 
 }
 
