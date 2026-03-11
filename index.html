@@ -135,6 +135,13 @@
     	.caminhao { padding: 15px; font-size: 14px; margin-bottom: 5px; }
     	.calendario { grid-template-columns: repeat(3, 1fr); }
 	}
+		.coluna[draggable="true"]{
+cursor:grab;
+}
+
+.coluna[draggable="true"]:active{
+cursor:grabbing;
+}
     </style>
 </head>
 <body>
@@ -460,27 +467,45 @@ function renderDashboard(){
 function criarColunaRetratil(nome,lista){
     const col = document.createElement("div");
 col.className="coluna";
-col.draggable = (modo==="admin" && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome));
-	col.ondragstart = e=>{
-    e.dataTransfer.setData("obra", nome);
-};
+if(modo==="admin" && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome)){
 
-col.ondrop = e=>{
-    const origem = e.dataTransfer.getData("obra");
-    if(!origem || origem===nome) return;
+    col.draggable = true;
 
-    const o1 = obras.find(o=>o.nome===origem);
-    const o2 = obras.find(o=>o.nome===nome);
+    col.addEventListener("dragstart",()=>{
+        obraArrastando = nome;
+        col.style.opacity = "0.4";
+    });
 
-    if(o1 && o2){
-        const temp = o1.ordem;
-        o1.ordem = o2.ordem;
-        o2.ordem = temp;
+    col.addEventListener("dragend",()=>{
+        obraArrastando = null;
+        col.style.opacity = "1";
+    });
 
-        salvar();
-		render();
-    }
-};
+    col.addEventListener("dragover",(e)=>{
+        e.preventDefault();
+    });
+
+    col.addEventListener("drop",(e)=>{
+        e.preventDefault();
+
+        if(!obraArrastando || obraArrastando === nome) return;
+
+        const o1 = obras.find(o=>o.nome===obraArrastando);
+        const o2 = obras.find(o=>o.nome===nome);
+
+        if(o1 && o2){
+
+            const temp = o1.ordem;
+            o1.ordem = o2.ordem;
+            o2.ordem = temp;
+
+            salvar();
+            render();
+        }
+
+    });
+
+}
 
 col.ondragover = e=>e.preventDefault();
     const aberto = colunasAbertas[nome] || false;
