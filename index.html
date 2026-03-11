@@ -539,8 +539,15 @@ col.ondragover = e=>e.preventDefault();
     const corpo = col.querySelector(".corpo-coluna");
 	const titulo = col.querySelector("h3");
 
-	titulo.ondragover = e=>e.preventDefault();
-corpo.ondragover = e=>e.preventDefault();
+	titulo.ondragover = e=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+};
+
+corpo.ondragover = e=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+};
 
 if(!modoEditarObras){
 
@@ -553,7 +560,10 @@ if(!modoEditarObras){
         card.className="caminhao";
         card.draggable=(modo==="admin");
         card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
-        card.ondragstart=e=>{ e.dataTransfer.setData("index", motoristas.indexOf(m)); };
+        card.ondragstart=e=>{
+    e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
+    e.dataTransfer.effectAllowed = "move";
+};
         corpo.appendChild(card);
     });
     el("quadro").appendChild(col);
@@ -561,7 +571,7 @@ if(!modoEditarObras){
 
 function soltar(e,destino){
 
-    const m = motoristas[e.dataTransfer.getData("index")];
+    const m = motoristas[e.dataTransfer.getData("text/plain")];
 
     const origem = m.obra || "SEM PROGRAMAÇÃO";
 
