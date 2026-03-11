@@ -79,6 +79,13 @@
         .btn-full{width: 100%; margin-top: 10px;}
         .whatsapp{ background:#25d366; }
 
+		/*SCROOL*/
+		.listaScroll{
+		max-height:350px;
+		overflow-y:auto;
+		padding-right:5px;
+		}
+
 	@media (max-width: 600px) {
     	header { flex-direction: column; gap: 10px; }
     	#busca { width: 100%; }
@@ -164,8 +171,26 @@
 <div id="modalObras" class="modal"><div class="modalBox"><div class="modalHeader"><h2>OBRAS</h2><button onclick="novaObra()" class="btn-success">+ NOVA</button></div><div id="listaObras" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 <div id="modalWhats" class="modal"><div class="modalBox whatsappBox"><div class="modalHeader"><h2>📲 Central de Envios</h2></div><div id="listaWhats" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 <div id="modalHistorico" class="modal">
+
 <div class="modalBox">
+
 <h2>📊 Histórico da Frota</h2>
+
+<div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+
+<input id="filtroMotorista" placeholder="Motorista">
+
+<input id="filtroObra" placeholder="Obra">
+
+<input id="filtroData" type="date">
+
+<button onclick="filtrarHistorico()">Filtrar</button>
+
+<button onclick="historicoHoje()">Hoje</button>
+
+<button onclick="limparFiltro()">Limpar</button>
+
+</div>
 
 <div id="listaHistorico" style="max-height:400px;overflow:auto"></div>
 
@@ -445,28 +470,50 @@ function editarNomeObra(i){
 }
 
 function abrirObras(){
-    el("modalObras").style.display="flex";
-    const lista = el("listaObras"); 
-    lista.innerHTML="";
+
+    const modal = el("modalObras");
+    const lista = el("listaObras");
+
+    modal.style.display = "flex";
+    lista.innerHTML = "";
+
+    if(obras.length === 0){
+
+        lista.innerHTML = "<p>Nenhuma obra cadastrada</p>";
+        return;
+
+    }
+
     obras.forEach((o,i)=>{
-        const div=document.createElement("div"); div.className="itemLista";
-        div.innerHTML=`
-		<div><strong>${o.nome}</strong></div>
 
-		<div class="acoes">
+        const div = document.createElement("div");
+        div.className = "itemLista";
 
-		<button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
+        div.innerHTML = `
+        <div>
+            <strong>${o.nome}</strong>
+            ${o.lat ? "<br><small>📍 Localização cadastrada</small>" : ""}
+        </div>
 
-		<button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
+        <div class="acoes">
 
-		<button class="btn-mini" onclick="toggleOculta(${i})">
-		${o.oculta?'Oculto':'Visível'}
-		</button>
+            <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
 
-		<button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+            <button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
 
-		</div>`;
+            <button class="btn-mini" onclick="toggleOculta(${i})">
+            ${o.oculta ? "Mostrar" : "Ocultar"}
+            </button>
+
+            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+
+        </div>
+        `;
+
+        lista.appendChild(div);
+
     });
+
 }
 function abrirMapaVisitante(){
 
@@ -542,27 +589,16 @@ function abrirHistorico(){
 
     el("modalHistorico").style.display="flex";
 
-    const lista = el("listaHistorico");
+    historicoHoje();
 
-    lista.innerHTML="";
+}
+	function historicoHoje(){
 
-    historico.forEach(h=>{
+    const hoje = new Date().toLocaleDateString("pt-BR");
 
-        const div=document.createElement("div");
+    const filtrado = historico.filter(h => h.data.includes(hoje));
 
-        div.className="itemLista";
-
-        div.innerHTML=`
-        <div>
-        <strong>${h.motorista}</strong><br>
-        <small>${h.de} → ${h.para}</small>
-        </div>
-        <div>${h.data}</div>
-        `;
-
-        lista.appendChild(div);
-
-    });
+    renderHistorico(filtrado);
 
 }
 	function registrarHistorico(motorista, de, para){
@@ -574,11 +610,95 @@ function abrirHistorico(){
         de: de,
         para: para,
         data: data.toLocaleString("pt-BR")
+	}
+
+    if(historico.length > 100){
+        historico.pop();
+    }
+
+    salvar(); // garante sincronização Firebase
     });
 
     if(historico.length > 100){
         historico.pop();
     }
+	}
+	function filtrarHistorico(){
+
+    const m = el("filtroMotorista").value.toLowerCase();
+    const o = el("filtroObra").value.toLowerCase();
+    const d = el("filtroData").value;
+
+    let lista = historico;
+
+    if(m){
+        lista = lista.filter(h =>
+            h.motorista.toLowerCase().includes(m)
+        );
+    }
+
+    if(o){
+        lista = lista.filter(h =>
+            h.para.toLowerCase().includes(o)
+        );
+    }
+
+    if(d){
+
+        const dataBR = new Date(d).toLocaleDateString("pt-BR");
+
+        lista = lista.filter(h =>
+            h.data.includes(dataBR)
+        );
+
+    }
+
+    renderHistorico(lista);
+
+}
+		function limparFiltro(){
+
+    el("filtroMotorista").value="";
+    el("filtroObra").value="";
+    el("filtroData").value="";
+
+    renderHistorico(historico);
+
+}
+		function renderHistorico(lista){
+
+    const div = el("listaHistorico");
+
+    div.innerHTML="";
+
+    if(lista.length===0){
+
+        div.innerHTML="<p>Nenhum registro</p>";
+
+        return;
+
+    }
+
+    lista.forEach(h=>{
+
+        const item=document.createElement("div");
+
+        item.className="itemLista";
+
+        item.innerHTML=`
+        <div>
+        <strong>${h.motorista}</strong><br>
+        <small>${h.de} → ${h.para}</small>
+        </div>
+
+        <div>${h.data}</div>
+        `;
+
+        div.appendChild(item);
+
+    });
+
+}
 	function editarLocalizacao(i){
 
     const lat = prompt("Latitude da obra:", obras[i].lat || "");
@@ -593,25 +713,6 @@ function abrirHistorico(){
 
     }
 
-}
-
-}
-function abrirMapa(i){
-
-    const o = obras[i];
-
-    if(!o.lat || !o.lng){
-
-        alert("Obra sem localização");
-
-        return;
-
-    }
-
-    window.open(
-        `https://maps.google.com/?q=${o.lat},${o.lng}`,
-        "_blank"
-    );
 
 }
 function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
