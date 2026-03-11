@@ -168,7 +168,27 @@
 </div>
 
 <div id="modalMotoristas" class="modal"><div class="modalBox"><div class="modalHeader"><h2>MOTORISTAS</h2><button onclick="novoMotorista()" class="btn-success">+ NOVO</button></div><div id="listaMotoristas" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
-<div id="modalObras" class="modal"><div class="modalBox"><div class="modalHeader"><h2>OBRAS</h2><button onclick="novaObra()" class="btn-success">+ NOVA</button></div><div id="listaObras" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
+<div id="modalObras" class="modal">
+<div class="modalBox">
+
+<div class="modalHeader">
+<h2>OBRAS</h2>
+<button onclick="novaObra()" class="btn-success">+ NOVA</button>
+</div>
+
+<input 
+id="buscaObra"
+placeholder="🔍 Buscar obra..."
+style="width:100%;padding:8px;margin:10px 0"
+oninput="filtrarObras()"
+>
+
+<div id="listaObras" class="listaScroll"></div>
+
+<button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button>
+
+</div>
+</div>
 <div id="modalWhats" class="modal"><div class="modalBox whatsappBox"><div class="modalHeader"><h2>📲 Central de Envios</h2></div><div id="listaWhats" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 <div id="modalHistorico" class="modal">
 
@@ -527,7 +547,59 @@ function abrirObras(){
 
     });
 
+	el("buscaObra").value="";
+	filtrarObras();
+
 }
+function filtrarObras(){
+
+    const busca = el("buscaObra").value.toLowerCase();
+
+    const lista = el("listaObras");
+    lista.innerHTML = "";
+
+    const filtradas = obras.filter(o =>
+        o.nome.toLowerCase().includes(busca)
+    );
+
+    if(filtradas.length === 0){
+        lista.innerHTML = "<p>Nenhuma obra encontrada</p>";
+        return;
+    }
+
+    filtradas.forEach(o => {
+
+        const i = obras.indexOf(o);
+
+        const div = document.createElement("div");
+        div.className = "itemLista";
+
+        div.innerHTML = `
+        <div>
+            <strong>${o.nome}</strong>
+            ${o.lat ? "<br><small>📍 Localização cadastrada</small>" : ""}
+        </div>
+
+        <div class="acoes">
+
+            <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
+
+            <button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
+
+            <button class="btn-mini" onclick="toggleOculta(${i})">
+            ${o.oculta ? "Mostrar" : "Ocultar"}
+            </button>
+
+            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+
+        </div>
+        `;
+
+        lista.appendChild(div);
+
+    });
+
+}	
 function abrirMapaVisitante(){
 
     const ativas = obras.filter(o => !o.oculta && o.lat && o.lng);
