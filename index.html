@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Painel de Frota Oficial</title>
-    
+    <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
@@ -27,7 +27,7 @@
         .loginBtns{ margin-top:10px; display:flex; gap:5px; justify-content:center; }
 	
 	input {
-    	font-size: 16px !important; /* Isso desativa o zoom automático do iOS */
+    	font-size: 16px !important;
     	padding: 12px;
     	width: 100%;
     	box-sizing: border-box;
@@ -79,71 +79,22 @@
         .btn-full{width: 100%; margin-top: 10px;}
         .whatsapp{ background:#25d366; }
 
-
 	@media (max-width: 600px) {
     	header { flex-direction: column; gap: 10px; }
     	#busca { width: 100%; }
     	.layout-principal { flex-direction: column; }
     	.lateral-fixa { width: 100%; position: static; }
     	.cardStat { min-width: 80px; }
-	.dashboard {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        padding: 10px;
-    	}
-	#login {
-        background: url('https://i.imgur.com/lf2S7Fc.jpeg') center/cover !important;
-   	 }
-    
-   	 /* Força o campo de senha a ter fonte 16px para evitar o zoom do iPhone */
-    	input[type="password"] {
-        font-size: 16px !important;
-
-   	 .cardStat {
-        margin-bottom: 0;
-   	 }
-
-    	/* Ajusta o Header para não amontoar */
-    	header {
-        flex-direction: column;
-        padding: 10px;
-        height: auto;
-    	}
-
-    	header .left, header .right {
-        width: 100%;
-        justify-content: center;
-        margin-bottom: 10px;
-    	}
-
-    	#busca {
-        width: 90%;
-        margin-bottom: 10px;
-    	}
-
-   	 /* Faz o Quadro ocupar a tela toda e a lateral (Pipa) ir para baixo */
-    	.layout-principal {
-        flex-direction: column;
-        padding: 10px;
-    	}
-
-    	.lateral-fixa {
-        width: 100%;
-        position: static;
-        margin-top: 20px;
-   	 }
-
-    	/* Melhora o tamanho dos cards dos caminhões para o dedo */
-    	.caminhao {
-        padding: 15px;
-        font-size: 14px;
-        margin-bottom: 5px;
-    	}
-
-    	/* Ajusta o calendário do Munk para não sumir da tela */
-    	.calendario {
-        grid-template-columns: repeat(3, 1fr);
+	.dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+	#login { background: url('https://i.imgur.com/lf2S7Fc.jpeg') center/cover !important; }
+    	input[type="password"] { font-size: 16px !important; }
+    	header { flex-direction: column; padding: 10px; height: auto; }
+    	header .left, header .right { width: 100%; justify-content: center; margin-bottom: 10px; }
+    	#busca { width: 90%; margin-bottom: 10px; }
+    	.layout-principal { flex-direction: column; padding: 10px; }
+    	.lateral-fixa { width: 100%; position: static; margin-top: 20px; }
+    	.caminhao { padding: 15px; font-size: 14px; margin-bottom: 5px; }
+    	.calendario { grid-template-columns: repeat(3, 1fr); }
 	}
     </style>
 </head>
@@ -212,7 +163,6 @@
 <div id="modalWhats" class="modal"><div class="modalBox whatsappBox"><div class="modalHeader"><h2>📲 Central de Envios</h2></div><div id="listaWhats" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 
 <script>
-// --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyDom32F_eZw0mTSsb1U0UHqlJXH8TcslGA",
   authDomain: "painel-frota-5c761.firebaseapp.com",
@@ -226,7 +176,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- VARIÁVEIS DE ESTADO ---
 let modo = "visitante";
 let motoristas = [];
 let obras = [];
@@ -235,7 +184,6 @@ let colunasAbertas = { "OFICINA": false, "SEM PROGRAMAÇÃO": true };
 
 const el = id => document.getElementById(id);
 
-// --- LOGIN ---
 function mostrarSenha(){ el("senhaBox").style.display="block"; el("escolha").style.display="none"; }
 function voltar(){ el("senhaBox").style.display="none"; el("escolha").style.display="block"; }
 function entrarAdmin(){ if(el("senha").value==="AdminBal"){ modo="admin"; iniciar(); } else alert("Senha incorreta"); }
@@ -253,7 +201,6 @@ function iniciar(){
     buscarClima();
 }
 
-// --- CLIMA ---
 async function buscarClima(){
     const climaEl = el("clima");
     try{
@@ -270,7 +217,6 @@ async function buscarClima(){
     }catch(e){ climaEl.innerText="--°C"; }
 }
 
-// --- PERSISTÊNCIA REALTIME (FIREBASE) ---
 function salvar(){
     if(modo!=="admin") return;
     db.ref("frotaGlobal").set({
@@ -294,40 +240,29 @@ function carregarRealtime(){
     });
 }
 
-// --- RENDERIZAÇÃO ---
 function render(){
     const busca = el("busca").value.toLowerCase();
     const quadro = el("quadro");
     quadro.innerHTML = "";
-    
     renderDashboard();
     renderMunk();
 
-    // 1. Filtramos a lista de motoristas pela busca global
     let filtrados = motoristas.filter(m => 
         m.nome.toLowerCase().includes(busca) || 
         m.placa.toLowerCase().includes(busca)
     );
 
-    // 2. Coluna Oficina (Sempre visível se houver alguém ou busca vazia)
     criarColunaRetratil("OFICINA", filtrados.filter(m => m.status === "oficina"));
 
-    // 3. Lógica para "Sem Programação" + "Obras Ocultas"
-    // Pegamos motoristas que:
-    // - Não estão na oficina E
-    // - (Não tem obra OU a obra que eles estão está marcada como oculta)
     const motoristasSemObraOuOculta = filtrados.filter(m => {
         if (m.status === "oficina") return false;
         if (!m.obra) return true;
-        
-        // Verifica se a obra dele está na lista de ocultas
         const obraRelacionada = obras.find(o => o.nome === m.obra);
         return (obraRelacionada && obraRelacionada.oculta);
     });
 
     criarColunaRetratil("SEM PROGRAMAÇÃO", motoristasSemObraOuOculta);
 
-    // 4. Colunas das Obras Ativas
     obras.forEach(o => {
         if (!o.oculta) {
             const motoristasDaObra = filtrados.filter(m => m.obra === o.nome && m.status !== "oficina");
@@ -378,7 +313,6 @@ function soltar(e,destino){
     salvar();
 }
 
-// --- FUNÇÕES DE MODAL (MOTORISTAS/OBRAS) ---
 function abrirMotoristas(){
     el("modalMotoristas").style.display="flex";
     const lista = el("listaMotoristas"); lista.innerHTML="";
@@ -406,12 +340,34 @@ function editarTelefone(i){
 
 function excluirMotorista(i){ if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
 
+window.onload = () => {
+    el("busca").oninput = render;
+};
+
+function editarNomeObra(i){
+    const novoNome = prompt("Novo nome para a obra:", obras[i].nome);
+    if(novoNome){
+        const nomeAntigo = obras[i].nome;
+        obras[i].nome = novoNome.toUpperCase();
+        motoristas.forEach(m => { if(m.obra === nomeAntigo) m.obra = obras[i].nome; });
+        salvar();
+        render();
+        abrirObras();
+    }
+}
+
 function abrirObras(){
     el("modalObras").style.display="flex";
-    const lista = el("listaObras"); lista.innerHTML="";
+    const lista = el("listaObras"); 
+    lista.innerHTML="";
     obras.forEach((o,i)=>{
         const div=document.createElement("div"); div.className="itemLista";
-        div.innerHTML=`<div><strong>${o.nome}</strong></div><div class="acoes"><button class="btn-mini" onclick="toggleOculta(${i})">${o.oculta?'Oculto':'Visível'}</button><button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button></div>`;
+        div.innerHTML=`<div><strong>${o.nome}</strong></div>
+        <div class="acoes">
+            <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
+            <button class="btn-mini" onclick="toggleOculta(${i})">${o.oculta?'Oculto':'Visível'}</button>
+            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+        </div>`;
         lista.appendChild(div);
     });
 }
@@ -433,7 +389,6 @@ function abrirCentralWhats(){
     });
 }
 
-// --- MUNK ---
 function renderMunk(){
     const cal = el("calendario-munk"); const d = new Date();
     el("mes-atual").innerText = d.toLocaleString('pt-br',{month:'long',year:'numeric'}).toUpperCase();
@@ -458,10 +413,8 @@ function renderMunk(){
     }
 }
 
-// --- UTILITÁRIOS ---
 function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
-el("busca").oninput = render;
 el("pipa-txt").onchange = salvar;
 
 </script>
