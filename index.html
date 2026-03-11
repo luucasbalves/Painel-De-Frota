@@ -291,7 +291,11 @@ let modo = "visitante";
 let motoristas = [];
 let obras = [];
 let agendaMunk = {};
-let colunasAbertas = { "OFICINA": false, "SEM PROGRAMAÇÃO": true };
+let colunasAbertas = { 
+    "OFICINA": false, 
+    "SEM PROGRAMAÇÃO": true,
+    "PEDREIRA": true
+};
 
 const el = id => document.getElementById(id);
 
@@ -407,9 +411,23 @@ if(!buscando || listaOficina.length > 0){
     if(!buscando || semProgramacao.length > 0){
     criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
 }
+	// PEDREIRA
+const pedreira = filtrados.filter(m => {
+
+    if(m.status === "oficina") return false;
+
+    return (m.obra || "") === "PEDREIRA";
+
+});
+
+if(!buscando || pedreira.length > 0){
+    criarColunaRetratil("PEDREIRA", pedreira);
+}
 
     // OBRAS
-    obras.forEach(o => {
+    obras
+.sort((a,b)=> (a.ordem||0) - (b.ordem||0))
+.forEach(o => {
 
     if(o.oculta) return;
 
@@ -441,7 +459,30 @@ function renderDashboard(){
 
 function criarColunaRetratil(nome,lista){
     const col = document.createElement("div");
-    col.className="coluna";
+col.className="coluna";
+col.draggable = (modo==="admin" && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome));
+	col.ondragstart = e=>{
+    e.dataTransfer.setData("obra", nome);
+};
+
+col.ondrop = e=>{
+    const origem = e.dataTransfer.getData("obra");
+    if(!origem || origem===nome) return;
+
+    const o1 = obras.find(o=>o.nome===origem);
+    const o2 = obras.find(o=>o.nome===nome);
+
+    if(o1 && o2){
+        const temp = o1.ordem;
+        o1.ordem = o2.ordem;
+        o2.ordem = temp;
+
+        salvar();
+		render();
+    }
+};
+
+col.ondragover = e=>e.preventDefault();
     const aberto = colunasAbertas[nome] || false;
     col.innerHTML=`<h3 onclick="toggleColuna('${nome}')"><div>${nome} (${lista.length})</div><span>${aberto?"▲":"▼"}</span></h3><div class="corpo-coluna ${aberto?"aberto":""}"></div>`;
     const corpo = col.querySelector(".corpo-coluna");
@@ -484,7 +525,15 @@ function soltar(e,destino){
 
         m.status="ativo";
         m.obsOficina="";
-        m.obra=(destino==="SEM PROGRAMAÇÃO") ? "SEM PROGRAMAÇÃO" : destino;
+        if(destino==="SEM PROGRAMAÇÃO"){
+    m.obra="SEM PROGRAMAÇÃO";
+}
+else if(destino==="PEDREIRA"){
+    m.obra="PEDREIRA";
+}
+else{
+    m.obra=destino;
+}
 
         registrarHistorico(m, origem, destino);
 
@@ -700,7 +749,11 @@ function abrirMapaVisitante(){
 
 }	
 
-function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({nome:n.toUpperCase(), oculta:false}); salvar(); abrirObras(); } }
+function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({
+    nome:n.toUpperCase(),
+    oculta:false,
+    ordem: obras.length
+}); salvar(); abrirObras(); } }
 function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
 function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
 
