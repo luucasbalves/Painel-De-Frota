@@ -182,6 +182,8 @@ cursor:grabbing;
 			<button onclick="abrirHistorico()">📊 Histórico</button>
             <button class="btn-danger" onclick="location.reload()">Sair</button>
 			<button class="btn-mini" onclick="abrirMapaVisitante()">🗺️ Obras</button>
+			<button id="btnEditarObras" onclick="ativarEdicaoObras()">✏️ Editar Obras</button>
+<button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
         </div>
     </header>
 
@@ -279,7 +281,8 @@ oninput="filtrarObras()"
 </div>
 </div>
 <script>
-
+let modoEditarObras = false;
+let obraArrastando = null;
 let historico = [];	
 const firebaseConfig = {
   apiKey: "AIzaSyDom32F_eZw0mTSsb1U0UHqlJXH8TcslGA",
@@ -451,6 +454,29 @@ if(!buscando || pedreira.length > 0){
 });
 
 }
+function ativarEdicaoObras(){
+
+    modoEditarObras = true;
+
+    el("btnEditarObras").style.display = "none";
+    el("btnSalvarOrdem").style.display = "inline-block";
+
+    alert("Modo edição de obras ativado.\nArraste as colunas para reordenar.");
+
+    render();
+
+}
+function finalizarEdicaoObras(){
+
+    modoEditarObras = false;
+
+    el("btnEditarObras").style.display = "inline-block";
+    el("btnSalvarOrdem").style.display = "none";
+
+    salvar();
+    render();
+
+}
 
 function renderDashboard(){
     const ofi = motoristas.filter(m=>m.status==="oficina").length;
@@ -467,7 +493,7 @@ function renderDashboard(){
 function criarColunaRetratil(nome,lista){
     const col = document.createElement("div");
 col.className="coluna";
-if(modo==="admin" && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome)){
+if(modo==="admin" && modoEditarObras && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome)){
 
     col.draggable = true;
 
