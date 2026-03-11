@@ -135,7 +135,7 @@
             <button onclick="abrirCentralWhats()" id="btnWhats" class="btn-success whatsapp">📲 Central Whats</button>
 			<button onclick="abrirHistorico()">📊 Histórico</button>
             <button class="btn-danger" onclick="location.reload()">Sair</button>
-			<button class="btn-mini" onclick="abrirMapa(${i})">🗺️</button>
+			<button class="btn-mini" onclick="abrirMapaVisitante()">🗺️ Obras</button>
         </div>
     </header>
 
@@ -174,6 +174,8 @@
 </div>
 </div>
 <script>
+
+let historico = [];	
 const firebaseConfig = {
   apiKey: "AIzaSyDom32F_eZw0mTSsb1U0UHqlJXH8TcslGA",
   authDomain: "painel-frota-5c761.firebaseapp.com",
@@ -230,24 +232,28 @@ async function buscarClima(){
 
 function salvar(){
     if(modo!=="admin") return;
+
     db.ref("frotaGlobal").set({
         motoristas: motoristas,
         obras: obras,
         agendaMunk: agendaMunk,
-        fluxoPipa: el("pipa-txt").value
+        fluxoPipa: el("pipa-txt").value,
+        historico: historico
     });
+
 }
 
 function carregarRealtime(){
     db.ref("frotaGlobal").on("value", (snapshot) => {
         const dados = snapshot.val();
         if(dados){
-            motoristas = dados.motoristas || [];
-            obras = dados.obras || [];
-            agendaMunk = dados.agendaMunk || {};
-            el("pipa-txt").value = dados.fluxoPipa || "";
-            render();
-        }
+   		motoristas = dados.motoristas || [];
+    	obras = dados.obras || [];
+    	agendaMunk = dados.agendaMunk || {};
+    	historico = dados.historico || [];
+    	el("pipa-txt").value = dados.fluxoPipa || "";
+    	render();
+		}
     });
 }
 
@@ -444,15 +450,53 @@ function abrirObras(){
     lista.innerHTML="";
     obras.forEach((o,i)=>{
         const div=document.createElement("div"); div.className="itemLista";
-        div.innerHTML=`<div><strong>${o.nome}</strong></div>
-        <div class="acoes">
-            <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
-            <button class="btn-mini" onclick="toggleOculta(${i})">${o.oculta?'Oculto':'Visível'}</button>
-            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
-        </div>`;
-        lista.appendChild(div);
+        div.innerHTML=`
+		<div><strong>${o.nome}</strong></div>
+
+		<div class="acoes">
+
+		<button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
+
+		<button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
+
+		<button class="btn-mini" onclick="toggleOculta(${i})">
+		${o.oculta?'Oculto':'Visível'}
+		</button>
+
+		<button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+
+		</div>`;
     });
 }
+function abrirMapaVisitante(){
+
+    const ativas = obras.filter(o => !o.oculta && o.lat && o.lng);
+
+    if(ativas.length === 0){
+        alert("Nenhuma obra com localização cadastrada");
+        return;
+    }
+
+    let lista = "Escolha a obra:\n\n";
+
+    ativas.forEach((o,i)=>{
+        lista += `${i+1} - ${o.nome}\n`;
+    });
+
+    const escolha = prompt(lista);
+
+    const obra = ativas[escolha-1];
+
+    if(obra){
+
+        window.open(
+            `https://maps.google.com/?q=${obra.lat},${obra.lng}`,
+            "_blank"
+        );
+
+    }
+
+}	
 
 function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({nome:n.toUpperCase(), oculta:false}); salvar(); abrirObras(); } }
 function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
@@ -519,6 +563,37 @@ function abrirHistorico(){
         lista.appendChild(div);
 
     });
+
+}
+	function registrarHistorico(motorista, de, para){
+
+    const data = new Date();
+
+    historico.unshift({
+        motorista: motorista.nome,
+        de: de,
+        para: para,
+        data: data.toLocaleString("pt-BR")
+    });
+
+    if(historico.length > 100){
+        historico.pop();
+    }
+	function editarLocalizacao(i){
+
+    const lat = prompt("Latitude da obra:", obras[i].lat || "");
+    const lng = prompt("Longitude da obra:", obras[i].lng || "");
+
+    if(lat && lng){
+
+        obras[i].lat = lat;
+        obras[i].lng = lng;
+
+        salvar();
+
+    }
+
+}
 
 }
 function abrirMapa(i){
