@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Painel de Frota Oficial</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -25,6 +25,13 @@
         #login::before{ content:""; position:absolute; inset:0; background:rgba(0,0,0,0.4); }
         .loginBox{ position:relative; background:white; padding:40px; border-radius:15px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3); border-top:5px solid var(--principal); }
         .loginBtns{ margin-top:10px; display:flex; gap:5px; justify-content:center; }
+	
+	input {
+    	font-size: 16px !important; /* Isso desativa o zoom automático do iOS */
+    	padding: 12px;
+    	width: 100%;
+    	box-sizing: border-box;
+	}
 
         /* HEADER */
         header{ display:flex; justify-content:space-between; align-items:center; background:white; padding:15px 25px; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:sticky; top:0; z-index:100; border-bottom:2px solid var(--apoio); }
@@ -79,6 +86,64 @@
     	.layout-principal { flex-direction: column; }
     	.lateral-fixa { width: 100%; position: static; }
     	.cardStat { min-width: 80px; }
+	.dashboard {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 10px;
+    	}
+	#login {
+        background: url('https://i.imgur.com/lf2S7Fc.jpeg') center/cover !important;
+   	 }
+    
+   	 /* Força o campo de senha a ter fonte 16px para evitar o zoom do iPhone */
+    	input[type="password"] {
+        font-size: 16px !important;
+
+   	 .cardStat {
+        margin-bottom: 0;
+   	 }
+
+    	/* Ajusta o Header para não amontoar */
+    	header {
+        flex-direction: column;
+        padding: 10px;
+        height: auto;
+    	}
+
+    	header .left, header .right {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 10px;
+    	}
+
+    	#busca {
+        width: 90%;
+        margin-bottom: 10px;
+    	}
+
+   	 /* Faz o Quadro ocupar a tela toda e a lateral (Pipa) ir para baixo */
+    	.layout-principal {
+        flex-direction: column;
+        padding: 10px;
+    	}
+
+    	.lateral-fixa {
+        width: 100%;
+        position: static;
+        margin-top: 20px;
+   	 }
+
+    	/* Melhora o tamanho dos cards dos caminhões para o dedo */
+    	.caminhao {
+        padding: 15px;
+        font-size: 14px;
+        margin-bottom: 5px;
+    	}
+
+    	/* Ajusta o calendário do Munk para não sumir da tela */
+    	.calendario {
+        grid-template-columns: repeat(3, 1fr);
 	}
     </style>
 </head>
