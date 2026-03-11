@@ -359,13 +359,21 @@ function carregarRealtime(){
     db.ref("frotaGlobal").on("value", (snapshot) => {
         const dados = snapshot.val();
         if(dados){
-   		motoristas = dados.motoristas || [];
-    	obras = dados.obras || [];
-    	agendaMunk = dados.agendaMunk || {};
-    	historico = dados.historico || [];
-    	el("pipa-txt").value = dados.fluxoPipa || "";
-    	render();
-		}
+            motoristas = dados.motoristas || [];
+            obras = dados.obras || [];
+            agendaMunk = dados.agendaMunk || {};
+            historico = dados.historico || [];
+            el("pipa-txt").value = dados.fluxoPipa || "";
+
+            // GARANTE ORDEM
+            obras.forEach((o,i)=>{
+                if(o.ordem === undefined){
+                    o.ordem = i;
+                }
+            });
+
+            render();
+        }
     });
 }
 
@@ -512,24 +520,23 @@ if(modo==="admin" && modoEditarObras && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIR
     });
 
     col.addEventListener("drop",(e)=>{
-        e.preventDefault();
+    e.preventDefault();
 
-        if(!obraArrastando || obraArrastando === nome) return;
+    if(!obraArrastando || obraArrastando === nome) return;
 
-        const o1 = obras.find(o=>o.nome===obraArrastando);
-        const o2 = obras.find(o=>o.nome===nome);
+    const origemIndex = obras.findIndex(o=>o.nome.toUpperCase()===obraArrastando);
+const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
 
-        if(o1 && o2){
+    if(origemIndex === -1 || destinoIndex === -1) return;
 
-            const temp = o1.ordem;
-            o1.ordem = o2.ordem;
-            o2.ordem = temp;
+    const movida = obras.splice(origemIndex,1)[0];
+    obras.splice(destinoIndex,0,movida);
 
-            salvar();
-            render();
-        }
+    obras.forEach((o,i)=>o.ordem=i);
 
-    });
+    salvar();
+    render();
+});
 
 }
 
@@ -541,6 +548,28 @@ col.ondragover = e=>e.preventDefault();
     e.preventDefault();
 });
 	const titulo = col.querySelector("h3");
+	titulo.addEventListener("dragover",(e)=>{
+    e.preventDefault();
+});
+
+titulo.addEventListener("drop",(e)=>{
+    e.preventDefault();
+
+    if(!obraArrastando || obraArrastando === nome) return;
+
+    const origemIndex = obras.findIndex(o=>o.nome.toUpperCase()===obraArrastando);
+    const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+
+    if(origemIndex === -1 || destinoIndex === -1) return;
+
+    const movida = obras.splice(origemIndex,1)[0];
+    obras.splice(destinoIndex,0,movida);
+
+    obras.forEach((o,i)=>o.ordem=i);
+
+    salvar();
+    render();
+});
 
 	titulo.ondragover = e=>{
     e.preventDefault();
