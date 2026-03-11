@@ -610,14 +610,15 @@ function abrirHistorico(){
         de: de,
         para: para,
         data: data.toLocaleString("pt-BR")
-	}
+    });
 
     if(historico.length > 100){
         historico.pop();
     }
 
-    salvar(); // garante sincronização Firebase
-    });
+    salvar();
+
+}
 
     if(historico.length > 100){
         historico.pop();
