@@ -639,6 +639,201 @@ el("busca").oninput=render;
 
 el("pipa-txt").onchange=salvar;
 
+/* ===== CORREÇÕES DE FUNÇÕES QUE FALTAM ===== */
+
+function renderMunk(){
+
+const cal = document.getElementById("calendario-munk");
+if(!cal) return;
+
+cal.innerHTML="";
+
+for(let i=1;i<=31;i++){
+
+const dia=document.createElement("div");
+dia.className="dia";
+dia.innerHTML="<strong>"+i+"</strong>";
+
+cal.appendChild(dia);
+
+}
+
+}
+
+/* ===== MODAL MOTORISTAS ===== */
+
+function abrirMotoristas(){
+
+const modal=document.getElementById("modalMotoristas");
+if(!modal) return;
+
+modal.style.display="flex";
+
+const lista=document.getElementById("listaMotoristas");
+lista.innerHTML="";
+
+motoristas.forEach((m,i)=>{
+
+const div=document.createElement("div");
+div.className="itemLista";
+
+div.innerHTML=`
+<div>
+<strong>${m.nome}</strong><br>
+<small>${m.placa}</small>
+</div>
+
+<div class="acoes">
+<button onclick="editarMotorista(${i})">Editar</button>
+<button onclick="excluirMotorista(${i})" class="btn-danger">Excluir</button>
+</div>
+`;
+
+lista.appendChild(div);
+
+});
+
+}
+
+function novoMotorista(){
+
+let nome=prompt("Nome motorista");
+if(!nome) return;
+
+let placa=prompt("Placa");
+
+motoristas.push({
+nome:nome,
+placa:placa,
+obra:"SEM PROGRAMAÇÃO",
+status:"ativo"
+});
+
+salvar();
+
+}
+
+function editarMotorista(i){
+
+let nome=prompt("Nome",motoristas[i].nome);
+if(nome) motoristas[i].nome=nome;
+
+salvar();
+
+}
+
+function excluirMotorista(i){
+
+if(confirm("Excluir motorista?")){
+
+motoristas.splice(i,1);
+salvar();
+
+}
+
+}
+
+/* ===== MODAL OBRAS ===== */
+
+function abrirObras(){
+
+const modal=document.getElementById("modalObras");
+modal.style.display="flex";
+
+const lista=document.getElementById("listaObras");
+lista.innerHTML="";
+
+obras.forEach((o,i)=>{
+
+const div=document.createElement("div");
+div.className="itemLista";
+
+div.innerHTML=`
+<div>${o.nome}</div>
+
+<div class="acoes">
+<button onclick="editarObra(${i})">Editar</button>
+<button onclick="excluirObra(${i})" class="btn-danger">Excluir</button>
+</div>
+`;
+
+lista.appendChild(div);
+
+});
+
+}
+
+function novaObra(){
+
+let nome=prompt("Nome da obra");
+
+if(!nome) return;
+
+obras.push({
+nome:nome,
+oculta:false
+});
+
+salvar();
+
+}
+
+function editarObra(i){
+
+let nome=prompt("Nome obra",obras[i].nome);
+
+if(nome) obras[i].nome=nome;
+
+salvar();
+
+}
+
+function excluirObra(i){
+
+if(confirm("Excluir obra?")){
+
+obras.splice(i,1);
+salvar();
+
+}
+
+}
+
+/* ===== CENTRAL WHATS ===== */
+
+function abrirCentralWhats(){
+
+const modal=document.getElementById("modalWhats");
+modal.style.display="flex";
+
+const lista=document.getElementById("listaWhats");
+lista.innerHTML="";
+
+motoristas.forEach(m=>{
+
+const div=document.createElement("div");
+
+div.className="itemLista";
+
+div.innerHTML=`
+<div>${m.nome}</div>
+<button onclick="enviarWhats('${m.nome}')">Enviar</button>
+`;
+
+lista.appendChild(div);
+
+});
+
+}
+
+function enviarWhats(nome){
+
+let texto=encodeURIComponent("Olá "+nome);
+
+window.open("https://wa.me/?text="+texto,"_blank");
+
+}	
+
 </script>
 </body>
 </html>
