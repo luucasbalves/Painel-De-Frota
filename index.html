@@ -301,15 +301,17 @@ function render(){
         return (
             m.nome.toLowerCase().includes(busca) ||
             m.placa.toLowerCase().includes(busca)
+			(m.obra && m.obra.toLowerCase().includes(busca))
         );
 
     });
 
     // OFICINA
-    criarColunaRetratil(
-        "OFICINA",
-        filtrados.filter(m => m.status === "oficina")
-    );
+    const listaOficina = filtrados.filter(m => m.status === "oficina");
+
+if(!buscando || listaOficina.length > 0){
+    criarColunaRetratil("OFICINA", listaOficina);
+}
 
     // SEM PROGRAMAÇÃO
     const semProgramacao = filtrados.filter(m => {
@@ -325,7 +327,9 @@ function render(){
 
     });
 
+    if(!buscando || semProgramacao.length > 0){
     criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
+}
 
     // OBRAS
     obras.forEach(o => {
