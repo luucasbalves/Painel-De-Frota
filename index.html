@@ -540,9 +540,14 @@ col.ondragover = e=>e.preventDefault();
 	const titulo = col.querySelector("h3");
 
 	titulo.ondragover = e=>e.preventDefault();
-	titulo.ondrop = e=>soltar(e,nome);
-    corpo.ondragover=e=>e.preventDefault();
-    corpo.ondrop=e=>soltar(e,nome);
+corpo.ondragover = e=>e.preventDefault();
+
+if(!modoEditarObras){
+
+    titulo.ondrop = e=>soltar(e,nome);
+    corpo.ondrop = e=>soltar(e,nome);
+
+}
     lista.forEach(m=>{
         const card=document.createElement("div");
         card.className="caminhao";
