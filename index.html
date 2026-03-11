@@ -21,8 +21,23 @@
         body{ margin:0; font-family:'Segoe UI',sans-serif; background:var(--fundo); color:var(--texto); }
 
         /* LOGIN */
-        #login{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:url('https://i.imgur.com/I6k1bBL.jpeg') center/cover; z-index:2000; }
-        #login::before{ content:""; position:absolute; inset:0; background:rgba(0,0,0,0.4); }
+        #login{
+  	  	position:fixed;
+    	inset:0;
+    	display:flex;
+    	align-items:center;
+    	justify-content:center;
+    	background:url('https://i.imgur.com/I6k1bBL.jpeg') center/cover no-repeat;
+    	z-index:2000;
+		}
+		
+       	#login::before{
+    	content:"";
+    	position:absolute;
+    	inset:0;
+    	background:rgba(0,0,0,0.4);
+    	z-index:-1;
+		}
         .loginBox{ position:relative; background:white; padding:40px; border-radius:15px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3); border-top:5px solid var(--principal); }
         .loginBtns{ margin-top:10px; display:flex; gap:5px; justify-content:center; }
 	
@@ -82,7 +97,7 @@
 		/*SCROOL*/
 		.listaScroll{
 		max-height:350px;
-		overflow-y:auto;
+		overflow-y:auto; 
 		padding-right:5px;
 		}
 
@@ -93,7 +108,24 @@
     	.lateral-fixa { width: 100%; position: static; }
     	.cardStat { min-width: 80px; }
 	.dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
-	#login { background: url('https://i.imgur.com/lf2S7Fc.jpeg') center/cover !important; }
+	#login{
+		position:fixed;
+		inset:0;
+		display:flex;
+		align-items:center;
+		justify-content:center;
+		background:#000 url('https://i.imgur.com/I6k1bBL.jpeg') center/cover no-repeat;
+		background-attachment:scroll;
+		z-index:2000;
+		}
+
+		#login::before{
+		content:"";
+		position:absolute;
+		inset:0;
+		background:rgba(0,0,0,0.4);
+		z-index:-1;
+		}
     	input[type="password"] { font-size: 16px !important; }
     	header { flex-direction: column; padding: 10px; height: auto; }
     	header .left, header .right { width: 100%; justify-content: center; margin-bottom: 10px; }
