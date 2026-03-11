@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Frota Oficial</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root{
+            --principal:#926148;
+            --apoio:#DDD3CD;
+            --fundo:#f4f1ef;
+            --texto:#4a3328;
+            --success:#27ae60;
+            --danger:#e74c3c;
+        }
+
+        body{ margin:0; font-family:'Segoe UI',sans-serif; background:var(--fundo); color:var(--texto); }
+
+        /* LOGIN */
+        #login{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:url('https://i.imgur.com/I6k1bBL.jpeg') center/cover; z-index:2000; }
+        #login::before{ content:""; position:absolute; inset:0; background:rgba(0,0,0,0.4); }
+        .loginBox{ position:relative; background:white; padding:40px; border-radius:15px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3); border-top:5px solid var(--principal); }
+        .loginBtns{ margin-top:10px; display:flex; gap:5px; justify-content:center; }
+
+        /* HEADER */
+        header{ display:flex; justify-content:space-between; align-items:center; background:white; padding:15px 25px; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:sticky; top:0; z-index:100; border-bottom:2px solid var(--apoio); }
+        .statusBar{ display:flex; gap:10px; align-items:center; }
+        #busca{ padding:10px 20px; border-radius:20px; border:2px solid var(--apoio); width:250px; outline:none; }
+
+        /* DASHBOARD */
+        .dashboard{ display:flex; gap:10px; padding:20px; }
+        .cardStat{ background:white; padding:12px; border-radius:10px; flex:1; text-align:center; border-bottom:3px solid var(--principal); box-shadow:0 2px 4px rgba(0,0,0,0.05); }
+        .cardStat h3{ margin:0; font-size:1.4rem; color:var(--principal); }
+        .cardStat span{ font-size:0.7rem; font-weight:bold; text-transform:uppercase; color:#777; }
+
+        /* LAYOUT */
+        .layout-principal{ display:flex; gap:20px; padding:0 20px 20px; align-items:flex-start; }
+        .quadro-vertical{ flex:1; display:flex; flex-direction:column; gap:12px; }
+        .coluna{ background:var(--apoio); border-radius:10px; overflow:hidden; border-left:6px solid var(--principal); }
+        .coluna h3{ margin:0; padding:15px; cursor:pointer; background:rgba(255,255,255,0.4); display:flex; justify-content:space-between; font-size:14px; }
+        .corpo-coluna{ padding:15px; display:none; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; background:white; max-height:300px; overflow-y:auto; }
+        .corpo-coluna.aberto{ display:grid; }
+        .caminhao{ background:var(--fundo); padding:12px; border-radius:8px; border:1px solid var(--apoio); cursor:grab; font-size:13px; transition:transform .2s; }
+        .caminhao:active{ transform:scale(1.05); }
+        .lateral-fixa{ width:300px; position:sticky; top:90px; }
+        .coluna-fixa{ background:white; padding:15px; border-radius:10px; border:1px solid var(--apoio); }
+        .pipa-fluxo{ width:100%; height:250px; border:1px solid var(--apoio); border-radius:5px; padding:10px; resize:none; }
+
+        /* MUNK */
+        .secao-munk{ margin:20px; background:white; padding:20px; border-radius:10px; border:1px solid var(--apoio); }
+        .calendario{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:15px; }
+        .dia{ border:1px solid var(--apoio); min-height:70px; padding:5px; background:#fff; cursor:pointer; }
+        .tarefa-munk{ background:var(--apoio); border-left:3px solid var(--principal); padding:2px 4px; margin-top:3px; font-size:10px; font-weight:bold; }
+
+        /* MODAIS */
+        .modal{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1000; }
+        .modalBox{ background:white; padding:25px; border-radius:12px; width:480px; border-top:8px solid var(--principal); }
+        .whatsappBox{ width:550px; }
+        .itemLista{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--apoio); }
+        .acoes{ display:flex; gap:5px; }
+
+        /* BOTÕES */
+        button{ padding:8px 12px; border:none; border-radius:6px; background:var(--principal); color:white; cursor:pointer; font-weight:bold; }
+        .btn-success{background:var(--success);}
+        .btn-danger{background:var(--danger);}
+        .btn-secondary{background:var(--apoio);color:var(--texto);}
+        .btn-mini{padding:4px 8px;font-size:11px;}
+        .btn-full{width: 100%; margin-top: 10px;}
+        .whatsapp{ background:#25d366; }
+
+
+	@media (max-width: 600px) {
+    	header { flex-direction: column; gap: 10px; }
+    	#busca { width: 100%; }
+    	.layout-principal { flex-direction: column; }
+    	.lateral-fixa { width: 100%; position: static; }
+    	.cardStat { min-width: 80px; }
+	}
+    </style>
+</head>
+<body>
+
+<div id="login">
+  <div class="loginBox">
+    <h2>🚚 Painel de Frota</h2>
+    <div id="escolha">
+      <button onclick="mostrarSenha()">Entrar como Admin</button>
+      <button class="btn-secondary" onclick="entrarVisitante()">Visitante</button>
+    </div>
+    <div id="senhaBox" style="display:none;">
+      <input id="senha" type="password" placeholder="Senha">
+      <div class="loginBtns">
+        <button onclick="entrarAdmin()">Entrar</button>
+        <button class="btn-secondary" onclick="voltar()">Voltar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+    <header>
+        <div class="left">
+            <h1>🚚 Quadro de Frota</h1>
+            <div class="statusBar">
+                <span id="badge-modo"></span>
+                <span id="clima">☁️ Verificando clima...</span>
+            </div>
+        </div>
+        <div class="center">
+            <input id="busca" placeholder="🔍 BUSCAR MOTORISTA OU PLACA...">
+        </div>
+        <div class="right">
+            <button onclick="abrirMotoristas()" id="btnMotoristas">Motoristas</button>
+            <button onclick="abrirObras()" id="btnObras">Obras</button>
+            <button onclick="abrirCentralWhats()" id="btnWhats" class="btn-success whatsapp">📲 Central Whats</button>
+            <button class="btn-danger" onclick="location.reload()">Sair</button>
+        </div>
+    </header>
+
+    <div id="dashboard" class="dashboard"></div>
+
+    <div class="layout-principal">
+        <div id="quadro" class="quadro-vertical"></div>
+        <div class="lateral-fixa">
+            <div class="coluna-fixa">
+                <h3>CAMINHÃO PIPA</h3>
+                <textarea id="pipa-txt" class="pipa-fluxo" placeholder="PROGRAMAÇÃO DO DIA..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="secao-munk">
+        <div class="munk-header">
+            <h2>🗓️ Agenda Mensal - Munk</h2>
+            <div id="mes-atual"></div>
+        </div>
+        <div id="calendario-munk" class="calendario"></div>
+    </div>
+</div>
+
+<div id="modalMotoristas" class="modal"><div class="modalBox"><div class="modalHeader"><h2>MOTORISTAS</h2><button onclick="novoMotorista()" class="btn-success">+ NOVO</button></div><div id="listaMotoristas" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
+<div id="modalObras" class="modal"><div class="modalBox"><div class="modalHeader"><h2>OBRAS</h2><button onclick="novaObra()" class="btn-success">+ NOVA</button></div><div id="listaObras" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
+<div id="modalWhats" class="modal"><div class="modalBox whatsappBox"><div class="modalHeader"><h2>📲 Central de Envios</h2></div><div id="listaWhats" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
+
+<script>
+// --- CONFIGURAÇÃO FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDom32F_eZw0mTSsb1U0UHqlJXH8TcslGA",
+  authDomain: "painel-frota-5c761.firebaseapp.com",
+  databaseURL: "https://painel-frota-5c761-default-rtdb.firebaseio.com",
+  projectId: "painel-frota-5c761",
+  storageBucket: "painel-frota-5c761.firebasestorage.app",
+  messagingSenderId: "442336919597",
+  appId: "1:442336919597:web:825f508c16a989bf37f8a4"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// --- VARIÁVEIS DE ESTADO ---
+let modo = "visitante";
+let motoristas = [];
+let obras = [];
+let agendaMunk = {};
+let colunasAbertas = { "OFICINA": false, "SEM PROGRAMAÇÃO": true };
+
+const el = id => document.getElementById(id);
+
+// --- LOGIN ---
+function mostrarSenha(){ el("senhaBox").style.display="block"; el("escolha").style.display="none"; }
+function voltar(){ el("senhaBox").style.display="none"; el("escolha").style.display="block"; }
+function entrarAdmin(){ if(el("senha").value==="AdminBal"){ modo="admin"; iniciar(); } else alert("Senha incorreta"); }
+function entrarVisitante(){ modo="visitante"; iniciar(); }
+
+function iniciar(){
+    el("login").style.display="none";
+    el("app").style.display="block";
+    el("badge-modo").innerText="MODO: "+modo.toUpperCase();
+    if(modo!=="admin"){
+        ["btnMotoristas","btnObras","btnWhats"].forEach(id=>el(id).style.display="none");
+        el("pipa-txt").readOnly = true;
+    }
+    carregarRealtime();
+    buscarClima();
+}
+
+// --- CLIMA ---
+async function buscarClima(){
+    const climaEl = el("clima");
+    try{
+        const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=-27.09&longitude=-48.91&current_weather=true");
+        const data = await res.json();
+        const temp = Math.round(data.current_weather.temperature);
+        const code = data.current_weather.weathercode;
+        let status="Céu Limpo"; let icone="☀️";
+        if(code>=1&&code<=3){status="Nublado";icone="☁️"}
+        else if(code>=45&&code<=48){status="Neblina";icone="🌫️"}
+        else if((code>=51&&code<=67)||(code>=80&&code<=82)){status="Chovendo";icone="🌧️"}
+        else if(code>=95){status="Trovoadas";icone="⛈️"}
+        climaEl.innerHTML=`${icone} ${temp}°C - ${status.toUpperCase()}`;
+    }catch(e){ climaEl.innerText="--°C"; }
+}
+
+// --- PERSISTÊNCIA REALTIME (FIREBASE) ---
+function salvar(){
+    if(modo!=="admin") return;
+    db.ref("frotaGlobal").set({
+        motoristas: motoristas,
+        obras: obras,
+        agendaMunk: agendaMunk,
+        fluxoPipa: el("pipa-txt").value
+    });
+}
+
+function carregarRealtime(){
+    db.ref("frotaGlobal").on("value", (snapshot) => {
+        const dados = snapshot.val();
+        if(dados){
+            motoristas = dados.motoristas || [];
+            obras = dados.obras || [];
+            agendaMunk = dados.agendaMunk || {};
+            el("pipa-txt").value = dados.fluxoPipa || "";
+            render();
+        }
+    });
+}
+
+// --- RENDERIZAÇÃO ---
+function render(){
+    const busca = el("busca").value.toLowerCase();
+    const quadro = el("quadro");
+    quadro.innerHTML = "";
+    
+    renderDashboard();
+    renderMunk();
+
+    // 1. Filtramos a lista de motoristas pela busca global
+    let filtrados = motoristas.filter(m => 
+        m.nome.toLowerCase().includes(busca) || 
+        m.placa.toLowerCase().includes(busca)
+    );
+
+    // 2. Coluna Oficina (Sempre visível se houver alguém ou busca vazia)
+    criarColunaRetratil("OFICINA", filtrados.filter(m => m.status === "oficina"));
+
+    // 3. Lógica para "Sem Programação" + "Obras Ocultas"
+    // Pegamos motoristas que:
+    // - Não estão na oficina E
+    // - (Não tem obra OU a obra que eles estão está marcada como oculta)
+    const motoristasSemObraOuOculta = filtrados.filter(m => {
+        if (m.status === "oficina") return false;
+        if (!m.obra) return true;
+        
+        // Verifica se a obra dele está na lista de ocultas
+        const obraRelacionada = obras.find(o => o.nome === m.obra);
+        return (obraRelacionada && obraRelacionada.oculta);
+    });
+
+    criarColunaRetratil("SEM PROGRAMAÇÃO", motoristasSemObraOuOculta);
+
+    // 4. Colunas das Obras Ativas
+    obras.forEach(o => {
+        if (!o.oculta) {
+            const motoristasDaObra = filtrados.filter(m => m.obra === o.nome && m.status !== "oficina");
+            criarColunaRetratil(o.nome.toUpperCase(), motoristasDaObra);
+        }
+    });
+}
+
+function renderDashboard(){
+    const ofi = motoristas.filter(m=>m.status==="oficina").length;
+    const livre = motoristas.filter(m=>!m.obra && m.status!=="oficina").length;
+    const ativas = obras.filter(o=>!o.oculta).length;
+    el("dashboard").innerHTML=`
+        <div class="cardStat"><h3>${motoristas.length}</h3><span>Frota</span></div>
+        <div class="cardStat"><h3>${ofi}</h3><span>Oficina</span></div>
+        <div class="cardStat"><h3>${livre}</h3><span>Livres</span></div>
+        <div class="cardStat"><h3>${ativas}</h3><span>Ativas</span></div>
+    `;
+}
+
+function criarColunaRetratil(nome,lista){
+    const col = document.createElement("div");
+    col.className="coluna";
+    const aberto = colunasAbertas[nome] || false;
+    col.innerHTML=`<h3 onclick="toggleColuna('${nome}')"><div>${nome} (${lista.length})</div><span>${aberto?"▲":"▼"}</span></h3><div class="corpo-coluna ${aberto?"aberto":""}"></div>`;
+    const corpo = col.querySelector(".corpo-coluna");
+    corpo.ondragover=e=>e.preventDefault();
+    corpo.ondrop=e=>soltar(e,nome);
+    lista.forEach(m=>{
+        const card=document.createElement("div");
+        card.className="caminhao";
+        card.draggable=(modo==="admin");
+        card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
+        card.ondragstart=e=>{ e.dataTransfer.setData("index", motoristas.indexOf(m)); };
+        corpo.appendChild(card);
+    });
+    el("quadro").appendChild(col);
+}
+
+function soltar(e,destino){
+    const m = motoristas[e.dataTransfer.getData("index")];
+    if(destino==="OFICINA"){
+        const mot = prompt("Motivo manutenção:",m.obsOficina||"");
+        if(mot!==null){ m.status="oficina"; m.obsOficina=mot; m.obra=null; }
+    }else{
+        m.status="ativo"; m.obsOficina=""; m.obra=(destino==="SEM PROGRAMAÇÃO") ? null : destino;
+    }
+    salvar();
+}
+
+// --- FUNÇÕES DE MODAL (MOTORISTAS/OBRAS) ---
+function abrirMotoristas(){
+    el("modalMotoristas").style.display="flex";
+    const lista = el("listaMotoristas"); lista.innerHTML="";
+    motoristas.forEach((m,i)=>{
+        const div=document.createElement("div"); div.className="itemLista";
+        div.innerHTML=`<div><strong>${m.nome}</strong><br><small>${m.placa}</small></div><div class="acoes"><button class="btn-mini" onclick="editarMotorista(${i})">✏️</button><button class="btn-mini" onclick="editarTelefone(${i})">📞</button><button class="btn-mini btn-danger" onclick="excluirMotorista(${i})">❌</button></div>`;
+        lista.appendChild(div);
+    });
+}
+
+function novoMotorista(){
+    const n=prompt("Nome:"); const p=prompt("Placa:"); const t=prompt("Telefone:");
+    if(n&&p){ motoristas.push({nome:n.toUpperCase(), placa:p.toUpperCase(), telefone:t||"", status:"ativo", obra:null}); salvar(); abrirMotoristas(); }
+}
+
+function editarMotorista(i){
+    const n = prompt("Nome:", motoristas[i].nome); const p = prompt("Placa:", motoristas[i].placa);
+    if(n && p){ motoristas[i].nome = n.toUpperCase(); motoristas[i].placa = p.toUpperCase(); salvar(); abrirMotoristas(); }
+}
+
+function editarTelefone(i){
+    const t=prompt("Telefone:",motoristas[i].telefone||"");
+    if(t!==null){ motoristas[i].telefone=t; salvar(); abrirMotoristas(); }
+}
+
+function excluirMotorista(i){ if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
+
+function abrirObras(){
+    el("modalObras").style.display="flex";
+    const lista = el("listaObras"); lista.innerHTML="";
+    obras.forEach((o,i)=>{
+        const div=document.createElement("div"); div.className="itemLista";
+        div.innerHTML=`<div><strong>${o.nome}</strong></div><div class="acoes"><button class="btn-mini" onclick="toggleOculta(${i})">${o.oculta?'Oculto':'Visível'}</button><button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button></div>`;
+        lista.appendChild(div);
+    });
+}
+
+function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({nome:n.toUpperCase(), oculta:false}); salvar(); abrirObras(); } }
+function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
+function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
+
+function abrirCentralWhats(){
+    const esc = motoristas.filter(m=>m.obra && m.telefone);
+    if(esc.length===0){ alert("Ninguém escalado com telefone"); return; }
+    el("modalWhats").style.display="flex";
+    const lista = el("listaWhats"); lista.innerHTML="";
+    esc.forEach(m=>{
+        const url=`https://api.whatsapp.com/send?phone=55${m.telefone}&text=${encodeURIComponent("Olá "+m.nome+", sua obra hoje é: "+m.obra)}`;
+        const div=document.createElement("div"); div.className="itemLista";
+        div.innerHTML=`<div><strong>${m.nome}</strong><br><small>${m.obra}</small></div><button class="btn-success" onclick="window.open('${url}','_blank')">ENVIAR</button>`;
+        lista.appendChild(div);
+    });
+}
+
+// --- MUNK ---
+function renderMunk(){
+    const cal = el("calendario-munk"); const d = new Date();
+    el("mes-atual").innerText = d.toLocaleString('pt-br',{month:'long',year:'numeric'}).toUpperCase();
+    cal.innerHTML="";
+    const total = new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    for(let i=1;i<=total;i++){
+        const dia=document.createElement("div"); dia.className="dia"; dia.innerHTML=`<span>${i}</span>`;
+        const k=`${d.getMonth()}-${i}`;
+        if(agendaMunk[k]){
+            agendaMunk[k].forEach((t,idx)=>{
+                const item=document.createElement("div"); item.className="tarefa-munk"; item.innerText=t;
+                item.onclick=e=>{ e.stopPropagation(); if(modo==="admin" && confirm("Remover?")){ agendaMunk[k].splice(idx,1); salvar(); } };
+                dia.appendChild(item);
+            });
+        }
+        dia.onclick=()=>{
+            if(modo!=="admin")return;
+            const t=prompt("Tarefa Munk:");
+            if(t){ if(!agendaMunk[k]) agendaMunk[k]=[]; agendaMunk[k].push(t); salvar(); }
+        };
+        cal.appendChild(dia);
+    }
+}
+
+// --- UTILITÁRIOS ---
+function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
+function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
+el("busca").oninput = render;
+el("pipa-txt").onchange = salvar;
+
+</script>
+</body>
+</html>
