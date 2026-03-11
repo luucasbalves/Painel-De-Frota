@@ -241,41 +241,64 @@ function carregarRealtime(){
 }
 
 function render(){
+
     const busca = el("busca").value.toLowerCase();
     const quadro = el("quadro");
-    quadro.innerHTML = "";
+
+    quadro.innerHTML="";
+
     renderDashboard();
     renderMunk();
 
+    // FILTRO DE BUSCA
     let filtrados = motoristas.filter(m => {
-    if(!busca) return true;
 
-    return (
-        m.nome.toLowerCase().includes(busca) ||
-        m.placa.toLowerCase().includes(busca)
-    );
-	});
+        if(!busca) return true;
 
-    criarColunaRetratil("OFICINA", filtrados.filter(m => m.status === "oficina"));
+        return (
+            m.nome.toLowerCase().includes(busca) ||
+            m.placa.toLowerCase().includes(busca)
+        );
 
-    const motoristasSemObraOuOculta = filtrados.filter(m => {
-    if(m.status === "oficina") return false;
-
-    if(m.obra === "SEM PROGRAMAÇÃO" || !m.obra)
-        return true;
-
-    const obraRelacionada = obras.find(o => o.nome === m.obra);
-    return obraRelacionada && obraRelacionada.oculta;
-	});
-
-    criarColunaRetratil("SEM PROGRAMAÇÃO", motoristasSemObraOuOculta);
-
-    obras.forEach(o => {
-        if (!o.oculta) {
-            const motoristasDaObra = filtrados.filter(m => m.obra === o.nome && m.status !== "oficina");
-            criarColunaRetratil(o.nome.toUpperCase(), motoristasDaObra);
-        }
     });
+
+    // OFICINA
+    criarColunaRetratil(
+        "OFICINA",
+        filtrados.filter(m => m.status === "oficina")
+    );
+
+    // SEM PROGRAMAÇÃO
+    const semProgramacao = filtrados.filter(m => {
+
+        if(m.status === "oficina") return false;
+
+        if(m.obra === "SEM PROGRAMAÇÃO" || !m.obra)
+            return true;
+
+        const obraRelacionada = obras.find(o => o.nome === m.obra);
+
+        return obraRelacionada && obraRelacionada.oculta;
+
+    });
+
+    criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
+
+    // OBRAS
+    obras.forEach(o => {
+
+        if(!o.oculta){
+
+            const lista = filtrados.filter(m =>
+                m.obra === o.nome && m.status !== "oficina"
+            );
+
+            criarColunaRetratil(o.nome.toUpperCase(), lista);
+
+        }
+
+    });
+
 }
 
 function renderDashboard(){
