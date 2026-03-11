@@ -285,6 +285,7 @@ function carregarRealtime(){
 function render(){
 
     const busca = el("busca").value.toLowerCase();
+	const buscando = busca.length > 0;
     const quadro = el("quadro");
 
     quadro.innerHTML="";
@@ -329,17 +330,20 @@ function render(){
     // OBRAS
     obras.forEach(o => {
 
-        if(!o.oculta){
+    if(!o.oculta){
 
-            const lista = filtrados.filter(m =>
-                m.obra === o.nome && m.status !== "oficina"
-            );
+        const lista = filtrados.filter(m =>
+            m.obra === o.nome && m.status !== "oficina"
+        );
 
-            criarColunaRetratil(o.nome.toUpperCase(), lista);
+        // se estiver buscando, mostra apenas obras que tenham resultado
+        if(buscando && lista.length === 0) return;
 
-        }
+        criarColunaRetratil(o.nome.toUpperCase(), lista);
 
-    });
+    }
+
+});
 
 }
 
