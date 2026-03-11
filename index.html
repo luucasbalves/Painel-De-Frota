@@ -298,10 +298,10 @@ function render(){
 
         if(!busca) return true;
 
-        return (
-            m.nome.toLowerCase().includes(busca) ||
-            m.placa.toLowerCase().includes(busca)
-			(m.obra && m.obra.toLowerCase().includes(busca))
+       return (
+   		m.nome.toLowerCase().includes(busca) ||
+   		m.placa.toLowerCase().includes(busca) ||
+  		(m.obra && m.obra.toLowerCase().includes(busca))
         );
 
     });
