@@ -176,663 +176,292 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let modo="visitante";
-let motoristas=[];
-let obras=[];
-let agendaMunk={};
-let historico=[];
+let modo = "visitante";
+let motoristas = [];
+let obras = [];
+let agendaMunk = {};
+let colunasAbertas = { "OFICINA": false, "SEM PROGRAMAÇÃO": true };
 
-let colunasAbertas={
-"OFICINA":false,
-"SEM PROGRAMAÇÃO":true
-};
+const el = id => document.getElementById(id);
 
-const el=id=>document.getElementById(id);
-
-function mostrarSenha(){
-el("senhaBox").style.display="block";
-el("escolha").style.display="none";
-}
-
-function voltar(){
-el("senhaBox").style.display="none";
-el("escolha").style.display="block";
-}
-
-function entrarAdmin(){
-if(el("senha").value==="AdminBal"){
-modo="admin";
-iniciar();
-}else{
-alert("Senha incorreta");
-}
-}
-
-function entrarVisitante(){
-modo="visitante";
-iniciar();
-}
+function mostrarSenha(){ el("senhaBox").style.display="block"; el("escolha").style.display="none"; }
+function voltar(){ el("senhaBox").style.display="none"; el("escolha").style.display="block"; }
+function entrarAdmin(){ if(el("senha").value==="AdminBal"){ modo="admin"; iniciar(); } else alert("Senha incorreta"); }
+function entrarVisitante(){ modo="visitante"; iniciar(); }
 
 function iniciar(){
-
-el("login").style.display="none";
-el("app").style.display="block";
-
-el("badge-modo").innerText="MODO: "+modo.toUpperCase();
-
-if(modo!=="admin"){
-
-["btnMotoristas","btnObras","btnWhats"].forEach(id=>{
-el(id).style.display="none";
-});
-
-el("pipa-txt").readOnly=true;
-
-}
-
-carregarRealtime();
-buscarClima();
-
+    el("login").style.display="none";
+    el("app").style.display="block";
+    el("badge-modo").innerText="MODO: "+modo.toUpperCase();
+    if(modo!=="admin"){
+        ["btnMotoristas","btnObras","btnWhats"].forEach(id=>el(id).style.display="none");
+        el("pipa-txt").readOnly = true;
+    }
+    carregarRealtime();
+    buscarClima();
 }
 
 async function buscarClima(){
-
-try{
-
-const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=-27.09&longitude=-48.91&current_weather=true");
-
-const data=await res.json();
-
-const temp=Math.round(data.current_weather.temperature);
-
-el("clima").innerHTML=`☀️ ${temp}°C`;
-
-}catch{
-
-el("clima").innerText="--°C";
-
-}
-
+    const climaEl = el("clima");
+    try{
+        const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=-27.09&longitude=-48.91&current_weather=true");
+        const data = await res.json();
+        const temp = Math.round(data.current_weather.temperature);
+        const code = data.current_weather.weathercode;
+        let status="Céu Limpo"; let icone="☀️";
+        if(code>=1&&code<=3){status="Nublado";icone="☁️"}
+        else if(code>=45&&code<=48){status="Neblina";icone="🌫️"}
+        else if((code>=51&&code<=67)||(code>=80&&code<=82)){status="Chovendo";icone="🌧️"}
+        else if(code>=95){status="Trovoadas";icone="⛈️"}
+        climaEl.innerHTML=`${icone} ${temp}°C - ${status.toUpperCase()}`;
+    }catch(e){ climaEl.innerText="--°C"; }
 }
 
 function salvar(){
-
-if(modo!=="admin")return;
-
-db.ref("frotaGlobal").set({
-
-motoristas,
-obras,
-agendaMunk,
-historico,
-fluxoPipa:el("pipa-txt").value
-
-});
-
+    if(modo!=="admin") return;
+    db.ref("frotaGlobal").set({
+        motoristas: motoristas,
+        obras: obras,
+        agendaMunk: agendaMunk,
+        fluxoPipa: el("pipa-txt").value
+    });
 }
 
 function carregarRealtime(){
-
-db.ref("frotaGlobal").on("value",(snapshot)=>{
-
-const dados=snapshot.val();
-
-if(!dados)return;
-
-motoristas=dados.motoristas||[];
-obras=dados.obras||[];
-agendaMunk=dados.agendaMunk||{};
-historico=dados.historico||[];
-
-el("pipa-txt").value=dados.fluxoPipa||"";
-
-render();
-
-});
-
+    db.ref("frotaGlobal").on("value", (snapshot) => {
+        const dados = snapshot.val();
+        if(dados){
+            motoristas = dados.motoristas || [];
+            obras = dados.obras || [];
+            agendaMunk = dados.agendaMunk || {};
+            el("pipa-txt").value = dados.fluxoPipa || "";
+            render();
+        }
+    });
 }
 
 function render(){
 
-const busca=el("busca").value.toLowerCase();
-const quadro=el("quadro");
+    const busca = el("busca").value.toLowerCase();
+    const quadro = el("quadro");
 
-quadro.innerHTML="";
+    quadro.innerHTML="";
 
-renderDashboard();
-renderMunk();
+    renderDashboard();
+    renderMunk();
 
-let filtrados=motoristas.filter(m=>{
+    // FILTRO DE BUSCA
+    let filtrados = motoristas.filter(m => {
 
-if(!busca)return true;
+        if(!busca) return true;
 
-return(
-m.nome.toLowerCase().includes(busca)||
-m.placa.toLowerCase().includes(busca)
-);
+        return (
+            m.nome.toLowerCase().includes(busca) ||
+            m.placa.toLowerCase().includes(busca)
+        );
 
-});
+    });
 
-criarColunaRetratil("OFICINA",filtrados.filter(m=>m.status==="oficina"));
+    // OFICINA
+    criarColunaRetratil(
+        "OFICINA",
+        filtrados.filter(m => m.status === "oficina")
+    );
 
-const semProgramacao=filtrados.filter(m=>{
+    // SEM PROGRAMAÇÃO
+    const semProgramacao = filtrados.filter(m => {
 
-if(m.status==="oficina")return false;
+        if(m.status === "oficina") return false;
 
-if(!m.obra||m.obra==="SEM PROGRAMAÇÃO")return true;
+        if(m.obra === "SEM PROGRAMAÇÃO" || !m.obra)
+            return true;
 
-const obraRelacionada=obras.find(o=>o.nome===m.obra);
+        const obraRelacionada = obras.find(o => o.nome === m.obra);
 
-return obraRelacionada&&obraRelacionada.oculta;
+        return obraRelacionada && obraRelacionada.oculta;
 
-});
+    });
 
-criarColunaRetratil("SEM PROGRAMAÇÃO",semProgramacao);
+    criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
 
-obras.forEach(o=>{
+    // OBRAS
+    obras.forEach(o => {
 
-if(!o.oculta){
+        if(!o.oculta){
 
-const lista=filtrados.filter(m=>m.obra===o.nome && m.status!=="oficina");
+            const lista = filtrados.filter(m =>
+                m.obra === o.nome && m.status !== "oficina"
+            );
 
-criarColunaRetratil(o.nome.toUpperCase(),lista);
+            criarColunaRetratil(o.nome.toUpperCase(), lista);
 
-}
+        }
 
-});
+    });
 
 }
 
 function renderDashboard(){
-
-const ofi=motoristas.filter(m=>m.status==="oficina").length;
-const livre=motoristas.filter(m=>m.obra==="SEM PROGRAMAÇÃO").length;
-const ativas=obras.filter(o=>!o.oculta).length;
-
-el("dashboard").innerHTML=`
-
-<div class="cardStat"><h3>${motoristas.length}</h3><span>Frota</span></div>
-<div class="cardStat"><h3>${ofi}</h3><span>Oficina</span></div>
-<div class="cardStat"><h3>${livre}</h3><span>Livres</span></div>
-<div class="cardStat"><h3>${ativas}</h3><span>Ativas</span></div>
-
-`;
-
+    const ofi = motoristas.filter(m=>m.status==="oficina").length;
+    const livre = motoristas.filter(m=>!m.obra && m.status!=="oficina").length;
+    const ativas = obras.filter(o=>!o.oculta).length;
+    el("dashboard").innerHTML=`
+        <div class="cardStat"><h3>${motoristas.length}</h3><span>Frota</span></div>
+        <div class="cardStat"><h3>${ofi}</h3><span>Oficina</span></div>
+        <div class="cardStat"><h3>${livre}</h3><span>Livres</span></div>
+        <div class="cardStat"><h3>${ativas}</h3><span>Ativas</span></div>
+    `;
 }
 
 function criarColunaRetratil(nome,lista){
-
-const col=document.createElement("div");
-col.className="coluna";
-
-const aberto=colunasAbertas[nome]||false;
-
-col.innerHTML=`
-
-<h3 onclick="toggleColuna('${nome}')">
-<div>${nome} (${lista.length})</div>
-<span>${aberto?"▲":"▼"}</span>
-</h3>
-
-<div class="corpo-coluna ${aberto?"aberto":""}"></div>
-
-`;
-
-const corpo=col.querySelector(".corpo-coluna");
-
-corpo.ondragover=e=>e.preventDefault();
-corpo.ondrop=e=>soltar(e,nome);
-
-lista.forEach(m=>{
-
-const card=document.createElement("div");
-
-card.className="caminhao";
-
-card.draggable=(modo==="admin");
-
-card.innerHTML=`
-<strong>${m.nome}</strong>
-<br>
-<small>${m.placa}</small>
-`;
-
-card.ondragstart=e=>{
-e.dataTransfer.setData("index",motoristas.indexOf(m));
-}
-
-corpo.appendChild(card);
-
-});
-
-el("quadro").appendChild(col);
-
+    const col = document.createElement("div");
+    col.className="coluna";
+    const aberto = colunasAbertas[nome] || false;
+    col.innerHTML=`<h3 onclick="toggleColuna('${nome}')"><div>${nome} (${lista.length})</div><span>${aberto?"▲":"▼"}</span></h3><div class="corpo-coluna ${aberto?"aberto":""}"></div>`;
+    const corpo = col.querySelector(".corpo-coluna");
+    corpo.ondragover=e=>e.preventDefault();
+    corpo.ondrop=e=>soltar(e,nome);
+    lista.forEach(m=>{
+        const card=document.createElement("div");
+        card.className="caminhao";
+        card.draggable=(modo==="admin");
+        card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
+        card.ondragstart=e=>{ e.dataTransfer.setData("index", motoristas.indexOf(m)); };
+        corpo.appendChild(card);
+    });
+    el("quadro").appendChild(col);
 }
 
 function soltar(e,destino){
-
-const m=motoristas[e.dataTransfer.getData("index")];
-
-if(destino==="OFICINA"){
-
-m.status="oficina";
-m.obra=null;
-
-}else{
-
-m.status="ativo";
-m.obra=destino;
-
-}
-
-salvar();
-
-}
-
-function toggleColuna(n){
-
-colunasAbertas[n]=!colunasAbertas[n];
-
-render();
-
-}
-
-function renderMunk(){
-
-const cal=el("calendario-munk");
-
-if(!cal)return;
-
-cal.innerHTML="";
-
-for(let i=1;i<=31;i++){
-
-const d=document.createElement("div");
-
-d.className="dia";
-
-d.innerHTML=`<strong>${i}</strong>`;
-
-cal.appendChild(d);
-
-}
-
+    const m = motoristas[e.dataTransfer.getData("index")];
+    if(destino==="OFICINA"){
+        const mot = prompt("Motivo manutenção:",m.obsOficina||"");
+        if(mot!==null){ m.status="oficina"; m.obsOficina=mot; m.obra=null; }
+    }else{
+        m.status="ativo"; m.obsOficina=""; m.obra=(destino==="SEM PROGRAMAÇÃO") ? "SEM PROGRAMAÇÃO" : destino;
+    }
+    salvar();
 }
 
 function abrirMotoristas(){
-
-el("modalMotoristas").style.display="flex";
-
-const lista=el("listaMotoristas");
-
-lista.innerHTML="";
-
-motoristas.forEach((m,i)=>{
-
-const div=document.createElement("div");
-
-div.className="itemLista";
-
-div.innerHTML=`
-<div>
-<strong>${m.nome}</strong><br>
-<small>${m.placa}</small>
-</div>
-<div class="acoes">
-<button onclick="editarMotorista(${i})">Editar</button>
-<button onclick="excluirMotorista(${i})" class="btn-danger">X</button>
-</div>
-`;
-
-lista.appendChild(div);
-
-});
-
+    el("modalMotoristas").style.display="flex";
+    const lista = el("listaMotoristas"); lista.innerHTML="";
+    motoristas.forEach((m,i)=>{
+        const div=document.createElement("div"); div.className="itemLista";
+        div.innerHTML=`<div><strong>${m.nome}</strong><br><small>${m.placa}</small></div><div class="acoes"><button class="btn-mini" onclick="editarMotorista(${i})">✏️</button><button class="btn-mini" onclick="editarTelefone(${i})">📞</button><button class="btn-mini btn-danger" onclick="excluirMotorista(${i})">❌</button></div>`;
+        lista.appendChild(div);
+    });
 }
 
 function novoMotorista(){
+    const n = prompt("Nome:");
+    const p = prompt("Placa:");
+    const t = prompt("Telefone:");
 
-const nome=prompt("Nome motorista");
+    if(n && p){
+        motoristas.push({
+            nome: n.toUpperCase(),
+            placa: p.toUpperCase(),
+            telefone: t || "",
+            status: "ativo",
+            obra: "SEM PROGRAMAÇÃO",
+            obsOficina: ""
+        });
 
-if(!nome)return;
-
-const placa=prompt("Placa caminhão");
-
-motoristas.push({
-nome,
-placa,
-obra:"SEM PROGRAMAÇÃO",
-status:"ativo"
-});
-
-salvar();
-
+        salvar();
+        render();
+        abrirMotoristas();
+    }
 }
 
 function editarMotorista(i){
-
-const nome=prompt("Nome",motoristas[i].nome);
-
-if(nome)motoristas[i].nome=nome;
-
-salvar();
-
+    const n = prompt("Nome:", motoristas[i].nome); const p = prompt("Placa:", motoristas[i].placa);
+    if(n && p){ motoristas[i].nome = n.toUpperCase(); motoristas[i].placa = p.toUpperCase(); salvar(); abrirMotoristas(); }
 }
 
-function excluirMotorista(i){
-
-if(confirm("Excluir motorista?")){
-
-motoristas.splice(i,1);
-
-salvar();
-
+function editarTelefone(i){
+    const t=prompt("Telefone:",motoristas[i].telefone||"");
+    if(t!==null){ motoristas[i].telefone=t; salvar(); abrirMotoristas(); }
 }
 
+function excluirMotorista(i){ if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
+
+window.onload = () => {
+    el("busca").oninput = render;
+};
+
+function editarNomeObra(i){
+    const novoNome = prompt("Novo nome para a obra:", obras[i].nome);
+    if(novoNome){
+        const nomeAntigo = obras[i].nome;
+        obras[i].nome = novoNome.toUpperCase();
+        motoristas.forEach(m => { if(m.obra === nomeAntigo) m.obra = obras[i].nome; });
+        salvar();
+        render();
+        abrirObras();
+    }
 }
 
 function abrirObras(){
-
-el("modalObras").style.display="flex";
-
-const lista=el("listaObras");
-
-lista.innerHTML="";
-
-obras.forEach((o,i)=>{
-
-const div=document.createElement("div");
-
-div.className="itemLista";
-
-div.innerHTML=`
-<div>${o.nome}</div>
-<div class="acoes">
-<button onclick="editarObra(${i})">Editar</button>
-<button onclick="excluirObra(${i})" class="btn-danger">X</button>
-</div>
-`;
-
-lista.appendChild(div);
-
-});
-
+    el("modalObras").style.display="flex";
+    const lista = el("listaObras"); 
+    lista.innerHTML="";
+    obras.forEach((o,i)=>{
+        const div=document.createElement("div"); div.className="itemLista";
+        div.innerHTML=`<div><strong>${o.nome}</strong></div>
+        <div class="acoes">
+            <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
+            <button class="btn-mini" onclick="toggleOculta(${i})">${o.oculta?'Oculto':'Visível'}</button>
+            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+        </div>`;
+        lista.appendChild(div);
+    });
 }
 
-function novaObra(){
-
-const nome=prompt("Nome da obra");
-
-if(!nome)return;
-
-obras.push({
-nome,
-oculta:false
-});
-
-salvar();
-
-}
-
-function editarObra(i){
-
-const nome=prompt("Nome obra",obras[i].nome);
-
-if(nome)obras[i].nome=nome;
-
-salvar();
-
-}
-
-function excluirObra(i){
-
-if(confirm("Excluir obra?")){
-
-obras.splice(i,1);
-
-salvar();
-
-}
-
-}
+function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({nome:n.toUpperCase(), oculta:false}); salvar(); abrirObras(); } }
+function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
+function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
 
 function abrirCentralWhats(){
-
-el("modalWhats").style.display="flex";
-
-const lista=el("listaWhats");
-
-lista.innerHTML="";
-
-motoristas.forEach(m=>{
-
-const div=document.createElement("div");
-
-div.className="itemLista";
-
-div.innerHTML=`
-<div>${m.nome}</div>
-<button onclick="enviarWhats('${m.nome}')">Enviar</button>
-`;
-
-lista.appendChild(div);
-
-});
-
+    const esc = motoristas.filter(m=>m.obra && m.telefone);
+    if(esc.length===0){ alert("Ninguém escalado com telefone"); return; }
+    el("modalWhats").style.display="flex";
+    const lista = el("listaWhats"); lista.innerHTML="";
+    esc.forEach(m=>{
+        const url=`https://api.whatsapp.com/send?phone=55${m.telefone}&text=${encodeURIComponent("Olá "+m.nome+", sua obra hoje é: "+m.obra)}`;
+        const div=document.createElement("div"); div.className="itemLista";
+        div.innerHTML=`<div><strong>${m.nome}</strong><br><small>${m.obra}</small></div><button class="btn-success" onclick="window.open('${url}','_blank')">ENVIAR</button>`;
+        lista.appendChild(div);
+    });
 }
-
-function enviarWhats(nome){
-
-const msg=encodeURIComponent("Olá "+nome+"!");
-
-window.open(`https://wa.me/?text=${msg}`,"_blank");
-
-}
-
-function fecharModal(){
-document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
-}
-
-window.onload=()=>{
-el("busca").oninput=render;
-}
-
-el("pipa-txt").onchange=salvar;
-
-/* ===== CORREÇÕES DE FUNÇÕES QUE FALTAM ===== */
 
 function renderMunk(){
-
-const cal = document.getElementById("calendario-munk");
-if(!cal) return;
-
-cal.innerHTML="";
-
-for(let i=1;i<=31;i++){
-
-const dia=document.createElement("div");
-dia.className="dia";
-dia.innerHTML="<strong>"+i+"</strong>";
-
-cal.appendChild(dia);
-
+    const cal = el("calendario-munk"); const d = new Date();
+    el("mes-atual").innerText = d.toLocaleString('pt-br',{month:'long',year:'numeric'}).toUpperCase();
+    cal.innerHTML="";
+    const total = new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    for(let i=1;i<=total;i++){
+        const dia=document.createElement("div"); dia.className="dia"; dia.innerHTML=`<span>${i}</span>`;
+        const k=`${d.getMonth()}-${i}`;
+        if(agendaMunk[k]){
+            agendaMunk[k].forEach((t,idx)=>{
+                const item=document.createElement("div"); item.className="tarefa-munk"; item.innerText=t;
+                item.onclick=e=>{ e.stopPropagation(); if(modo==="admin" && confirm("Remover?")){ agendaMunk[k].splice(idx,1); salvar(); } };
+                dia.appendChild(item);
+            });
+        }
+        dia.onclick=()=>{
+            if(modo!=="admin")return;
+            const t=prompt("Tarefa Munk:");
+            if(t){ if(!agendaMunk[k]) agendaMunk[k]=[]; agendaMunk[k].push(t); salvar(); }
+        };
+        cal.appendChild(dia);
+    }
 }
 
-}
-
-/* ===== MODAL MOTORISTAS ===== */
-
-function abrirMotoristas(){
-
-const modal=document.getElementById("modalMotoristas");
-if(!modal) return;
-
-modal.style.display="flex";
-
-const lista=document.getElementById("listaMotoristas");
-lista.innerHTML="";
-
-motoristas.forEach((m,i)=>{
-
-const div=document.createElement("div");
-div.className="itemLista";
-
-div.innerHTML=`
-<div>
-<strong>${m.nome}</strong><br>
-<small>${m.placa}</small>
-</div>
-
-<div class="acoes">
-<button onclick="editarMotorista(${i})">Editar</button>
-<button onclick="excluirMotorista(${i})" class="btn-danger">Excluir</button>
-</div>
-`;
-
-lista.appendChild(div);
-
-});
-
-}
-
-function novoMotorista(){
-
-let nome=prompt("Nome motorista");
-if(!nome) return;
-
-let placa=prompt("Placa");
-
-motoristas.push({
-nome:nome,
-placa:placa,
-obra:"SEM PROGRAMAÇÃO",
-status:"ativo"
-});
-
-salvar();
-
-}
-
-function editarMotorista(i){
-
-let nome=prompt("Nome",motoristas[i].nome);
-if(nome) motoristas[i].nome=nome;
-
-salvar();
-
-}
-
-function excluirMotorista(i){
-
-if(confirm("Excluir motorista?")){
-
-motoristas.splice(i,1);
-salvar();
-
-}
-
-}
-
-/* ===== MODAL OBRAS ===== */
-
-function abrirObras(){
-
-const modal=document.getElementById("modalObras");
-modal.style.display="flex";
-
-const lista=document.getElementById("listaObras");
-lista.innerHTML="";
-
-obras.forEach((o,i)=>{
-
-const div=document.createElement("div");
-div.className="itemLista";
-
-div.innerHTML=`
-<div>${o.nome}</div>
-
-<div class="acoes">
-<button onclick="editarObra(${i})">Editar</button>
-<button onclick="excluirObra(${i})" class="btn-danger">Excluir</button>
-</div>
-`;
-
-lista.appendChild(div);
-
-});
-
-}
-
-function novaObra(){
-
-let nome=prompt("Nome da obra");
-
-if(!nome) return;
-
-obras.push({
-nome:nome,
-oculta:false
-});
-
-salvar();
-
-}
-
-function editarObra(i){
-
-let nome=prompt("Nome obra",obras[i].nome);
-
-if(nome) obras[i].nome=nome;
-
-salvar();
-
-}
-
-function excluirObra(i){
-
-if(confirm("Excluir obra?")){
-
-obras.splice(i,1);
-salvar();
-
-}
-
-}
-
-/* ===== CENTRAL WHATS ===== */
-
-function abrirCentralWhats(){
-
-const modal=document.getElementById("modalWhats");
-modal.style.display="flex";
-
-const lista=document.getElementById("listaWhats");
-lista.innerHTML="";
-
-motoristas.forEach(m=>{
-
-const div=document.createElement("div");
-
-div.className="itemLista";
-
-div.innerHTML=`
-<div>${m.nome}</div>
-<button onclick="enviarWhats('${m.nome}')">Enviar</button>
-`;
-
-lista.appendChild(div);
-
-});
-
-}
-
-function enviarWhats(nome){
-
-let texto=encodeURIComponent("Olá "+nome);
-
-window.open("https://wa.me/?text="+texto,"_blank");
-
-}	
+function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
+function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
+el("pipa-txt").onchange = salvar;
 
 </script>
 </body>
