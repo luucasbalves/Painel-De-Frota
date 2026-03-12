@@ -390,7 +390,7 @@ function carregarRealtime(){
 
 function render(){
 
-    const busca = el("busca").value.toLowerCase();
+    const busca = (el("busca")?.value || "").toLowerCase();
 	const buscando = busca.length > 0;
     const quadro = el("quadro");
 
@@ -617,7 +617,9 @@ if(!modoEditarObras){
     corpo.appendChild(card);
 });
 
-
+el("quadro").appendChild(col);
+}
+	
 function soltar(e,destino){
 
     e.preventDefault();   // 🔴 ESSENCIAL
@@ -708,10 +710,16 @@ function editarTelefone(i){
 
 function excluirMotorista(i){ if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
 
-window.onload = () => {
-    el("busca").oninput = render;
-	el("busca").addEventListener("keyup", render);
-};
+window.addEventListener("DOMContentLoaded", () => {
+
+    const buscaInput = el("busca");
+
+    if(buscaInput){
+        buscaInput.oninput = render;
+        buscaInput.addEventListener("keyup", render);
+    }
+
+});
 function filtrarMotoristas(){
 
     const busca = (el("buscaMotorista").value || "").toLowerCase();
