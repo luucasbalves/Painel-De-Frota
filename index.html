@@ -87,6 +87,36 @@
 		font-size:11px;
 		color:#777;
 	}
+		.cardFlip {
+    perspective:1000px;
+}
+
+.cardInner{
+    position:relative;
+    width:100%;
+    height:70px;
+    transition:transform .6s;
+    transform-style:preserve-3d;
+}
+
+.cardFlip.virado .cardInner{
+    transform:rotateY(180deg);
+}
+
+.cardFace{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    backface-visibility:hidden;
+}
+
+.cardBack{
+    transform:rotateY(180deg);
+    font-size:12px;
+}
 		
 
         /* LAYOUT */
@@ -205,30 +235,37 @@
 	}
 
 		.menuLateral {
-    position: fixed;
-    top: 0;
-    left: -280px; /* Escondido */
-    width: 250px;
-    height: 100%;
-    background: white;
-    z-index: 5000; /* Aumentado para ficar sobre o header */
-    transition: 0.3s;
-    padding: 20px;
-    box-shadow: 5px 0 15px rgba(0,0,0,0.3);
-	flex-direction:column;
-    gap:5px;
+position: fixed;
+top: 0;
+left: -280px;
+width: 260px;
+height: 100%;
+background: white;
+z-index: 5000;
+transition: 0.3s;
+padding: 20px;
+box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+display:flex;
+flex-direction:column;
+}
+
+.menuLateral button{
+width:100%;
+margin-bottom:8px;
+padding:12px;
+text-align:left;
+font-size:14px;
+border-radius:8px;
+background:#f4f1ef;
+color:var(--texto);
+}
+
+.menuLateral button:hover{
+background:var(--apoio);
 }
 
 .menuLateral.aberto {
     left: 0; /* Mostra o menu */
-}
-		.menuLateral button{
-    width:100%;
-    margin-bottom:8px;
-    padding:10px;
-    text-align:left;
-    font-size:14px;
-    border-radius:8px;
 }
 
 /* Overlay para fechar ao clicar fora */
@@ -274,13 +311,17 @@
 </header>
 
 	<div id="menuLateral" class="menuLateral">
+		<div id="infoTopoMenu" style="margin-bottom:15px;">
+<div id="dataHoje"></div>
+<div id="horaAgora" style="font-size:18px;font-weight:bold"></div>
+</div>
 	<div id="clima"></div>
     <button onclick="abrirMotoristas();toggleMenu()">Motoristas</button>
 	<button onclick="abrirObras();toggleMenu()">Obras</button>
 	<button onclick="abrirCentralWhats();toggleMenu()">Central Whats</button>
 	<button onclick="abrirHistorico();toggleMenu()">Histórico</button>
 	<button onclick="abrirMapaVisitante();toggleMenu()">Mapa Obras</button>
-    <button id="btnEditarObras" onclick="ativarEdicaoObras()">✏️ Editar Obras</button>
+  	<button id="btnEditarObras" onclick="ativarEdicaoObras();toggleMenu()">✏️ Editar Obras</button>
     <button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
 </div>
     <div id="dashboard" class="dashboard"></div>
@@ -412,6 +453,7 @@ function entrarAdmin(){ if(el("senha").value==="AdminBal"){ modo="admin"; inicia
 function entrarVisitante(){ modo="visitante"; iniciar(); }
 
 function iniciar(){
+	atualizarRelogio();
     el("login").style.display="none";
     el("app").style.display="block";
     el("badge-modo").innerText="MODO: "+modo.toUpperCase();
@@ -529,40 +571,78 @@ function ativarEdicaoObras(){
 
 	function renderDashboard(){
 
-    const ofi = motoristas.filter(m=>m.status==="oficina").length;
+const ofi = motoristas.filter(m=>m.status==="oficina");
+const livres = motoristas.filter(m=>{
+    if(m.status==="oficina") return false;
+    const obra = m.obra || "SEM PROGRAMAÇÃO";
+    if(obra==="SEM PROGRAMAÇÃO") return true;
+    const o = obras.find(x=>x.nome===obra);
+    return o && o.oculta;
+});
 
-    const livres = motoristas.filter(m=>{
-        if(m.status==="oficina") return false;
-        const obra = m.obra || "SEM PROGRAMAÇÃO";
-        if(obra==="SEM PROGRAMAÇÃO") return true;
-        const o = obras.find(x=>x.nome===obra);
-        return o && o.oculta;
-    }).length;
+const tiposOficina = contarTipos(ofi);
+const tiposLivres = contarTipos(livres);
 
-    const obrasAtivas = obras.filter(o=>!o.oculta).length;
+const obrasAtivas = obras.filter(o=>!o.oculta).length;
 
-    el("dashboard").innerHTML = `
+el("dashboard").innerHTML = `
 
-    <div class="cardStat" onclick="alert('Total de motoristas cadastrados')">
-        <h3>${motoristas.length}</h3>
-        <span>FROTA TOTAL</span>
-    </div>
+<div class="cardStat cardFlip" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
 
-    <div class="cardStat" onclick="alert('Caminhões em manutenção')">
-        <h3>${ofi}</h3>
-        <span>OFICINA</span>
-    </div>
+<div class="cardFace">
+<h3>${motoristas.length}</h3>
+<span>FROTA TOTAL</span>
+</div>
 
-    <div class="cardStat" onclick="alert('Caminhões sem programação')">
-        <h3>${livres}</h3>
-        <span>LIVRES</span>
-    </div>
+<div class="cardFace cardBack">
+TRUCK: ${contarTipos(motoristas).trucks}<br>
+BITRUCK: ${contarTipos(motoristas).bitrucks}<br>
+CARRETA: ${contarTipos(motoristas).carretas}
+</div>
 
-    <div class="cardStat">
-        <h3>${obrasAtivas}</h3>
-        <span>OBRAS ATIVAS</span>
-    </div>
-    `;
+</div>
+</div>
+
+<div class="cardStat cardFlip" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
+
+<div class="cardFace">
+<h3>${ofi.length}</h3>
+<span>OFICINA</span>
+</div>
+
+<div class="cardFace cardBack">
+TRUCK: ${tiposOficina.trucks}<br>
+BITRUCK: ${tiposOficina.bitrucks}<br>
+CARRETA: ${tiposOficina.carretas}
+</div>
+
+</div>
+</div>
+
+<div class="cardStat cardFlip" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
+
+<div class="cardFace">
+<h3>${livres.length}</h3>
+<span>LIVRES</span>
+</div>
+
+<div class="cardFace cardBack">
+TRUCK: ${tiposLivres.trucks}<br>
+BITRUCK: ${tiposLivres.bitrucks}<br>
+CARRETA: ${tiposLivres.carretas}
+</div>
+
+</div>
+</div>
+
+<div class="cardStat">
+<h3>${obrasAtivas}</h3>
+<span>OBRAS ATIVAS</span>
+</div>
+`;
 }
 	
 function render(){
@@ -773,6 +853,31 @@ lista.forEach((m) => {
     corpo.appendChild(card);
 
 });
+	const indicador = document.createElement("div");
+indicador.className="drop-indicator";
+
+col.before(indicador);
+
+indicador.ondragover = (e)=>e.preventDefault();
+
+indicador.ondrop = ()=>{
+
+if(!obraArrastando) return;
+
+const origem = obras.findIndex(o=>o.nome===obraArrastando);
+const destino = obras.findIndex(o=>o.nome===nome);
+
+if(origem === -1 || destino === -1) return;
+
+const temp = obras[origem];
+obras.splice(origem,1);
+obras.splice(destino,0,temp);
+
+obras.forEach((o,i)=>o.ordem=i);
+
+salvar();
+render();
+};
 
 quadro.appendChild(col);
 }	
@@ -1427,6 +1532,23 @@ function toggleMenu() {
     }
     overlay.classList.toggle("ativo");
 }
+function atualizarRelogio(){
+
+const agora = new Date();
+
+el("horaAgora").innerText =
+agora.toLocaleTimeString("pt-BR");
+
+el("dataHoje").innerText =
+agora.toLocaleDateString("pt-BR",{
+weekday:"long",
+day:"2-digit",
+month:"long"
+}).toUpperCase();
+
+}
+
+setInterval(atualizarRelogio,1000);	
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
 document.addEventListener("DOMContentLoaded",()=>{
     el("pipa-txt").onchange = salvar;
