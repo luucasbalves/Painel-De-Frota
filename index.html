@@ -376,9 +376,13 @@ function salvar(){
 }
 
 function carregarRealtime(){
+
     db.ref("frotaGlobal").on("value", (snapshot) => {
+
         const dados = snapshot.val();
+
         if(dados){
+
             motoristas = dados.motoristas || [];
             obras = dados.obras || [];
             agendaMunk = dados.agendaMunk || {};
@@ -387,15 +391,22 @@ function carregarRealtime(){
 
             obras.forEach((o,i)=>{
 
-    if(o.ordem === undefined){
-        o.ordem = i;
-    }
+                if(o.ordem === undefined){
+                    o.ordem = i;
+                }
 
-    if(!o.tipo){
-        o.tipo = "interna";
-    }
+                if(!o.tipo){
+                    o.tipo = "interna";
+                }
 
-});
+            });
+
+        }
+
+        render(); // 🔵 importante para atualizar o painel
+
+    });
+
 }
 
 function render(){
