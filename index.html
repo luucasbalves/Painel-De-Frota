@@ -622,8 +622,8 @@ col.ondragover = e=>e.preventDefault();
 	<div>${nome} (${lista.length})</div>
 	<div style="display:flex;gap:5px">
 	${modoEditarObras ? `
-	<button class="btn-mini" onclick="moverObra('${nome}',-1)">⬆</button>
-	<button class="btn-mini" onclick="moverObra('${nome}',1)">⬇</button>
+	<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',-1)">⬆</button>
+	<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',1)">⬇</button>
 	` : ""}
 	<span>${aberto?"▲":"▼"}</span>
 	</div>
@@ -1257,7 +1257,14 @@ function abrirHistorico(){
     abrirObras();
 
 }
-function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
+function toggleColuna(n){
+
+    if(modoEditarObras) return;
+
+    colunasAbertas[n] = !colunasAbertas[n];
+    render();
+
+}
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
 el("pipa-txt").onchange = salvar;
 
