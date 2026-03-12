@@ -55,21 +55,50 @@
         #busca{ padding:10px 20px; border-radius:20px; border:2px solid var(--apoio); width:250px; outline:none; }
 
         /* DASHBOARD */
-        .dashboard{ display:flex; gap:10px; padding:20px; }
-        .cardStat{ background:white; padding:12px; border-radius:10px; flex:1; text-align:center; border-bottom:3px solid var(--principal); box-shadow:0 2px 4px rgba(0,0,0,0.05); }
+        .dashboard{
+display:flex;
+gap:10px;
+padding:20px;
+flex-wrap:wrap;
+}
         .cardStat{
+    flex:1;
+    min-height:70px;
     perspective:1000px;
     cursor:pointer;
 }
 
-	.cardInner{
-    	position:relative;
-    	width:100%;
-   	 	height:100%;
-    	text-align:center;
-    	transition:transform 0.6s;
-	    transform-style:preserve-3d;
-		min-height:60px;;
+.cardInner{
+    position:relative;
+    width:100%;
+    height:100%;
+    text-align:center;
+    transition:transform 0.6s;
+    transform-style:preserve-3d;
+}
+
+.cardStat.virado .cardInner{
+    transform:rotateY(180deg);
+}
+
+.cardFace{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    background:white;
+    border-radius:10px;
+    border-bottom:3px solid var(--principal);
+    box-shadow:0 2px 4px rgba(0,0,0,0.05);
+
+    backface-visibility:hidden;
+}
+
+.cardBack{
+    transform:rotateY(180deg);
 }
 
 	.cardStat.virado .cardInner{
@@ -632,6 +661,8 @@ function contarTipos(lista){
 
     });
 
+    const obrasAtivas = obras.filter(o=>!o.oculta).length;
+
     const frotaTipos = contarTipos(motoristas);
     const oficinaTipos = contarTipos(ofiLista);
     const livreTipos = contarTipos(livreLista);
@@ -689,10 +720,14 @@ CARRETAS: ${livreTipos.carretas}
 </div>
 </div>
 
+<div class="cardStat">
+<h3>${obrasAtivas}</h3>
+<span>OBRAS ATIVAS</span>
+</div>
+
 `;
 
 }
-
 function criarColunaRetratil(nome,lista,titulo){
 	if(!titulo) titulo = nome;
 	if(!lista) lista = [];
