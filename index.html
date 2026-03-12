@@ -496,35 +496,24 @@ internas
 
 
 // SEPARADOR VISUAL
-const separador = document.createElement("div");
-separador.style.padding = "10px";
-separador.style.fontWeight = "bold";
-separador.style.textAlign = "center";
-separador.style.background = "#eee";
-separador.innerText = "🚛 ENTREGAS DE MATERIAL";
-
-quadro.appendChild(separador);
-
-
 // OBRAS DE ENTREGA
 const entregas = obras
 .filter(o => !o.oculta && o.tipo === "entrega");
 
-entregas
-.sort((a,b)=> (a.ordem||0) - (b.ordem||0))
-.forEach(o => {
+if(entregas.length > 0){
 
-    const lista = filtrados.filter(m =>
-        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-    );
+    const separador = document.createElement("div");
+    separador.style.padding = "10px";
+    separador.style.fontWeight = "bold";
+    separador.style.textAlign = "center";
+    separador.style.background = "#eee";
+    separador.innerText = "🚛 ENTREGAS DE MATERIAL";
 
-    if(buscando && lista.length === 0) return;
-
-    criarColunaRetratil(o.nome.toUpperCase(), lista);
-
-});
+    quadro.appendChild(separador);
 
 }
+
+
 function ativarEdicaoObras(){
 
     modoEditarObras = true;
@@ -562,6 +551,7 @@ function renderDashboard(){
 }
 
 function criarColunaRetratil(nome,lista){
+	if(!lista) lista = [];
     const col = document.createElement("div");
 col.className="coluna";
 if(modo==="admin" && modoEditarObras && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome)){
@@ -634,7 +624,7 @@ corpo.ondragover = (e)=> e.preventDefault();
 
 	card.innerHTML = `
 	<strong>${m.nome}</strong><br>
-	<small>${m.placa}</small>
+	<small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
 	${m.obsOficina ? `<br><small>${m.obsOficina}</small>` : ""}
 	`;
 
