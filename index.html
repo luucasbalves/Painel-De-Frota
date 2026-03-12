@@ -607,6 +607,7 @@ if(modo==="admin" && modoEditarObras && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIR
 	const destinoIndex = obras.findIndex(o=>o.nome === nome);
 
     if(origemIndex === -1 || destinoIndex === -1) return;
+	if(origemIndex === destinoIndex) return;
 
     const movida = obras.splice(origemIndex,1)[0];
     obras.splice(destinoIndex,0,movida);
@@ -1001,8 +1002,7 @@ function vincularDestino(i){
     let destino = null;
 
     // tentar número
-    const numero = parseInt(busca);
-
+    const numero = parseInt(busca.trim());
     if(!isNaN(numero) && obras[numero-1] && numero-1 !== i){
         destino = obras[numero-1].nome;
     }
@@ -1133,7 +1133,7 @@ function novaObra(){
 	function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
 	function moverObra(nome,direcao){
 
-	const index = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+	const index = obras.findIndex(o=>o.nome === nome);
 	
 	if(index === -1) return;
 
@@ -1309,10 +1309,9 @@ function abrirHistorico(){
         obras[i].lng = lng;
 
         salvar();
+        abrirObras();
 
     }
-		
-
 
 }
 	function editarTipoObra(i){
