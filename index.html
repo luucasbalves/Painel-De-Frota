@@ -435,16 +435,18 @@ if(!buscando || listaOficina.length > 0){
     // SEM PROGRAMAÇÃO
     const semProgramacao = filtrados.filter(m => {
 
-        if(m.status === "oficina") return false;
+    if(m.status === "oficina") return false;
 
-        if(m.obra === "SEM PROGRAMAÇÃO" || !m.obra)
-            return true;
+    const obra = m.obra || "SEM PROGRAMAÇÃO";
 
-        const obraRelacionada = obras.find(o => o.nome === m.obra);
+    if(obra === "SEM PROGRAMAÇÃO")
+        return true;
 
-        return obraRelacionada && obraRelacionada.oculta;
+    const obraRelacionada = obras.find(o => o.nome === obra);
 
-    });
+    return obraRelacionada && obraRelacionada.oculta;
+
+});
 
     if(!buscando || semProgramacao.length > 0){
     criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
@@ -470,8 +472,8 @@ if(!buscando || pedreira.length > 0){
     if(o.oculta) return;
 
     const lista = filtrados.filter(m =>
-        (m.obra || "") === o.nome && m.status !== "oficina"
-    );
+    (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+);
 
     if(buscando && lista.length === 0) return;
 
@@ -508,7 +510,7 @@ function finalizarEdicaoObras(){
 
 function renderDashboard(){
     const ofi = motoristas.filter(m=>m.status==="oficina").length;
-    const livre = motoristas.filter(m=>m.obra==="SEM PROGRAMAÇÃO" && m.status!=="oficina").length;
+    const livre = motoristas.filter(m=> (m.obra || "SEM PROGRAMAÇÃO")==="SEM PROGRAMAÇÃO" && m.status!=="oficina").length;
     const ativas = obras.filter(o=>!o.oculta).length;
     el("dashboard").innerHTML=`
         <div class="cardStat"><h3>${motoristas.length}</h3><span>Frota</span></div>
@@ -562,7 +564,7 @@ const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
 
 col.ondragover = e=>e.preventDefault();
     const aberto = colunasAbertas[nome] || false;
-    col.innerHTML=`
+   	col.innerHTML=`
 	<h3 onclick="toggleColuna('${nome}')">
 	<div>${nome} (${lista.length})</div>
 	<div style="display:flex;gap:5px">
@@ -573,8 +575,24 @@ col.ondragover = e=>e.preventDefault();
 	<span>${aberto?"▲":"▼"}</span>
 	</div>
 	</h3>
-	`;
+
+<div class="corpo-coluna ${aberto ? "aberto" : ""}"></div>
+`;
     const corpo = col.querySelector(".corpo-coluna");
+	lista.forEach((m,i)=>{
+
+    const card = document.createElement("div");
+    card.className = "caminhao";
+
+    card.innerHTML = `
+    <strong>${m.nome}</strong><br>
+    <small>${m.placa}</small>
+    ${m.obsOficina ? `<br><small>${m.obsOficina}</small>` : ""}
+    `;
+
+    corpo.appendChild(card);
+
+});
 	corpo.addEventListener("dragover",(e)=>{
     e.preventDefault();
 });
