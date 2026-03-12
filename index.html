@@ -519,7 +519,11 @@ function render(){
 
         if(buscando && lista.length === 0) return;
 
-        criarColunaRetratil(o.nome.toUpperCase(), lista);
+        const titulo = o.destino
+    	? `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`
+    	: o.nome.toUpperCase();
+
+		criarColunaRetratil(titulo, lista);
 
     });
 
@@ -946,6 +950,7 @@ function filtrarObras(){
             <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
 
             <button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
+			<button class="btn-mini" onclick="vincularDestino(${i})">🔗</button>
 			<button class="btn-mini" onclick="editarTipoObra(${i})">🚧</button>
 
             <button class="btn-mini" onclick="toggleOculta(${i})">
@@ -960,6 +965,30 @@ function filtrarObras(){
         lista.appendChild(div);
 
     });
+
+}
+function vincularDestino(i){
+
+    let lista = obras
+        .map((o,idx)=>`${idx+1} - ${o.nome}`)
+        .join("\n");
+
+    const escolha = prompt(
+        "Escolha a obra destino:\n\n"+lista+"\n\n0 - Remover destino"
+    );
+
+    const index = parseInt(escolha)-1;
+
+    if(escolha === "0"){
+        obras[i].destino = "";
+    }
+    else if(!isNaN(index) && obras[index]){
+        obras[i].destino = obras[index].nome;
+    }
+
+    salvar();
+    render();
+    abrirObras();
 
 }
 function abrirObras(){
