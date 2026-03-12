@@ -37,6 +37,7 @@
     	inset:0;
     	background:rgba(0,0,0,0.4);
     	z-index:-1;
+		pointer-events:none;   
 		}
         .loginBox{ position:relative; background:white; padding:40px; border-radius:15px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3); border-top:5px solid var(--principal); }
         .loginBtns{ margin-top:10px; display:flex; gap:5px; justify-content:center; }
@@ -409,123 +410,6 @@ function carregarRealtime(){
 
 }
 
-function render(){
-
-    const busca = (el("busca")?.value || "").toLowerCase();
-	const buscando = busca.length > 0;
-    const quadro = el("quadro");
-
-    quadro.innerHTML="";
-
-    renderDashboard();
-    renderMunk();
-
-    // FILTRO DE BUSCA
-    let filtrados = motoristas.filter(m => {
-
-    if(!busca) return true;
-
-    const nome = (m.nome || "").toLowerCase();
-    const placa = (m.placa || "").toLowerCase();
-    const obra = (m.obra || "").toLowerCase();
-
-    return (
-        nome.includes(busca) ||
-        placa.includes(busca) ||
-        obra.includes(busca)
-    );
-
-});
-
-    // OFICINA
-    const listaOficina = filtrados.filter(m => m.status === "oficina");
-
-if(!buscando || listaOficina.length > 0){
-    criarColunaRetratil("OFICINA", listaOficina);
-}
-
-    // SEM PROGRAMAÇÃO
-    const semProgramacao = filtrados.filter(m => {
-
-    if(m.status === "oficina") return false;
-
-    const obra = m.obra || "SEM PROGRAMAÇÃO";
-
-    if(obra === "SEM PROGRAMAÇÃO")
-        return true;
-
-    const obraRelacionada = obras.find(o => o.nome === obra);
-
-    return obraRelacionada && obraRelacionada.oculta;
-
-});
-
-    if(!buscando || semProgramacao.length > 0){
-    criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
-}
-	// PEDREIRA
-const pedreira = filtrados.filter(m => {
-
-    if(m.status === "oficina") return false;
-
-    return (m.obra || "") === "PEDREIRA";
-
-});
-
-if(!buscando || pedreira.length > 0){
-    criarColunaRetratil("PEDREIRA", pedreira);
-}
-
-    // OBRAS INTERNAS
-const internas = obras
-.filter(o => !o.oculta && (o.tipo !== "entrega"));
-
-internas
-.sort((a,b)=> (a.ordem||0) - (b.ordem||0))
-.forEach(o => {
-
-    const lista = filtrados.filter(m =>
-        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-    );
-
-    if(buscando && lista.length === 0) return;
-
-    criarColunaRetratil(o.nome.toUpperCase(), lista);
-
-});
-
-
-// SEPARADOR VISUAL
-// OBRAS DE ENTREGA
-const entregas = obras
-.filter(o => !o.oculta && o.tipo === "entrega");
-
-if(entregas.length > 0){
-
-    const separador = document.createElement("div");
-    separador.style.padding = "10px";
-    separador.style.fontWeight = "bold";
-    separador.style.textAlign = "center";
-    separador.style.background = "#eee";
-    separador.innerText = "🚛 ENTREGAS DE MATERIAL";
-
-    quadro.appendChild(separador);
-
-}
-
-
-function ativarEdicaoObras(){
-
-    modoEditarObras = true;
-
-    el("btnEditarObras").style.display = "none";
-    el("btnSalvarOrdem").style.display = "inline-block";
-
-    alert("Modo edição de obras ativado.\nArraste as colunas para reordenar.");
-
-    render();
-
-}
 function finalizarEdicaoObras(){
 
     modoEditarObras = false;
@@ -535,6 +419,122 @@ function finalizarEdicaoObras(){
 
     salvar();
     render();
+
+}
+	
+function render(){
+
+    const busca = (el("busca")?.value || "").toLowerCase();
+    const buscando = busca.length > 0;
+    const quadro = el("quadro");
+
+    quadro.innerHTML="";
+
+    renderDashboard();
+    renderMunk();
+
+    // FILTRO
+    const filtrados = motoristas.filter(m => {
+
+        if(!busca) return true;
+
+        const nome = (m.nome || "").toLowerCase();
+        const placa = (m.placa || "").toLowerCase();
+        const obra = (m.obra || "").toLowerCase();
+
+        return (
+            nome.includes(busca) ||
+            placa.includes(busca) ||
+            obra.includes(busca)
+        );
+    });
+
+    // OFICINA
+    const listaOficina = filtrados.filter(m => m.status === "oficina");
+
+    if(!buscando || listaOficina.length > 0){
+        criarColunaRetratil("OFICINA", listaOficina);
+    }
+
+    // SEM PROGRAMAÇÃO
+    const semProgramacao = filtrados.filter(m => {
+
+        if(m.status === "oficina") return false;
+
+        const obra = m.obra || "SEM PROGRAMAÇÃO";
+
+        if(obra === "SEM PROGRAMAÇÃO")
+            return true;
+
+        const obraRelacionada = obras.find(o => o.nome === obra);
+
+        return obraRelacionada && obraRelacionada.oculta;
+
+    });
+
+    if(!buscando || semProgramacao.length > 0){
+        criarColunaRetratil("SEM PROGRAMAÇÃO", semProgramacao);
+    }
+
+    // PEDREIRA
+    const pedreira = filtrados.filter(m => {
+
+        if(m.status === "oficina") return false;
+
+        return (m.obra || "") === "PEDREIRA";
+
+    });
+
+    if(!buscando || pedreira.length > 0){
+        criarColunaRetratil("PEDREIRA", pedreira);
+    }
+
+    // OBRAS INTERNAS
+    const internas = obras
+    .filter(o => !o.oculta && (o.tipo !== "entrega"));
+
+    internas
+    .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
+    .forEach(o => {
+
+        const lista = filtrados.filter(m =>
+            (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+        );
+
+        if(buscando && lista.length === 0) return;
+
+        criarColunaRetratil(o.nome.toUpperCase(), lista);
+
+    });
+
+    // ENTREGAS
+    const entregas = obras
+    .filter(o => !o.oculta && o.tipo === "entrega");
+
+    if(entregas.length > 0){
+
+        const separador = document.createElement("div");
+        separador.style.padding = "10px";
+        separador.style.fontWeight = "bold";
+        separador.style.textAlign = "center";
+		separador.style.background = "var(--apoio)";
+        separador.innerText = "🚛 ENTREGAS DE MATERIAL";
+
+        quadro.appendChild(separador);
+
+        entregas.forEach(o => {
+
+            const lista = filtrados.filter(m =>
+                (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+            );
+
+            if(buscando && lista.length === 0) return;
+
+            criarColunaRetratil(o.nome.toUpperCase(), lista);
+
+        });
+
+    }
 
 }
 
