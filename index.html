@@ -402,8 +402,7 @@ function carregarRealtime(){
                 }
 
                 if(!o.tipo){
-  				o.tipo = "interna";
-    			salvar();
+    			o.tipo = "interna";
 				}
 
             });
@@ -523,7 +522,7 @@ function render(){
     	? `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`
     	: o.nome.toUpperCase();
 
-		criarColunaRetratil(titulo, lista);
+		criarColunaRetratil(o.nome, lista, titulo);
 
     });
 
@@ -552,7 +551,11 @@ function render(){
 
             if(buscando && lista.length === 0) return;
 
-            criarColunaRetratil(o.nome.toUpperCase(), lista);
+            const titulo = o.destino
+			? `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`
+			: o.nome.toUpperCase();
+
+			criarColunaRetratil(o.nome, lista, titulo);
 
         });
 
@@ -572,7 +575,8 @@ function renderDashboard(){
     `;
 }
 
-function criarColunaRetratil(nome,lista){
+function criarColunaRetratil(nome,lista,titulo){
+	if(!titulo) titulo = nome;
 	if(!lista) lista = [];
     const col = document.createElement("div");
 col.className="coluna";
@@ -599,8 +603,8 @@ if(modo==="admin" && modoEditarObras && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIR
 
     if(!obraArrastando || obraArrastando === nome) return;
 
-    const origemIndex = obras.findIndex(o=>o.nome.toUpperCase()===obraArrastando);
-const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+    const origemIndex = obras.findIndex(o=>o.nome === obraArrastando);
+	const destinoIndex = obras.findIndex(o=>o.nome === nome);
 
     if(origemIndex === -1 || destinoIndex === -1) return;
 
@@ -619,7 +623,7 @@ col.ondragover = e=>e.preventDefault();
     const aberto = colunasAbertas[nome] || false;
    	col.innerHTML=`
 	<h3 onclick="toggleColuna('${nome}')">
-	<div>${nome} (${lista.length})</div>
+	<div>${titulo} (${lista.length})</div>
 	<div style="display:flex;gap:5px">
 	${modoEditarObras ? `
 	<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',-1)">⬆</button>
@@ -656,18 +660,18 @@ corpo.ondragover = (e)=> e.preventDefault();
 	corpo.addEventListener("dragover",(e)=>{
     e.preventDefault();
 });
-	const titulo = col.querySelector("h3");
-	titulo.addEventListener("dragover",(e)=>{
+	const headerColuna = col.querySelector("h3");
+	headerColuna.addEventListener("dragover",(e)=>{
     e.preventDefault();
 });
 
-titulo.addEventListener("drop",(e)=>{
+headerColuna.addEventListener("drop",(e)=>{
     e.preventDefault();
 
     if(!obraArrastando || obraArrastando === nome) return;
 
-    const origemIndex = obras.findIndex(o=>o.nome.toUpperCase()===obraArrastando);
-    const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+    const origemIndex = obras.findIndex(o=>o.nome === obraArrastando);
+	const destinoIndex = obras.findIndex(o=>o.nome === nome);
 
     if(origemIndex === -1 || destinoIndex === -1) return;
 
@@ -705,9 +709,8 @@ if(modoEditarObras){
 
         if(!obraArrastando) return;
 
-        const origemIndex = obras.findIndex(o=>o.nome.toUpperCase()===obraArrastando);
-
-        const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+        const origemIndex = obras.findIndex(o=>o.nome === obraArrastando);
+		const destinoIndex = obras.findIndex(o=>o.nome === nome);
 
         const movida = obras.splice(origemIndex,1)[0];
         obras.splice(destinoIndex,0,movida);
@@ -982,9 +985,9 @@ function vincularDestino(i){
     if(escolha === "0"){
         obras[i].destino = "";
     }
-    else if(!isNaN(index) && obras[index]){
-        obras[i].destino = obras[index].nome;
-    }
+    else if(!isNaN(index) && obras[index] && index !== i){
+    obras[i].destino = obras[index].nome;
+	}
 
     salvar();
     render();
