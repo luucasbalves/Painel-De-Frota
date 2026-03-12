@@ -385,16 +385,17 @@ function carregarRealtime(){
             historico = dados.historico || [];
             el("pipa-txt").value = dados.fluxoPipa || "";
 
-            // GARANTE ORDEM
             obras.forEach((o,i)=>{
-                if(o.ordem === undefined){
-                    o.ordem = i;
-                }
-            });
 
-            render();
-        }
-    });
+    if(o.ordem === undefined){
+        o.ordem = i;
+    }
+
+    if(!o.tipo){
+        o.tipo = "interna";
+    }
+
+});
 }
 
 function render(){
@@ -464,22 +465,51 @@ if(!buscando || pedreira.length > 0){
     criarColunaRetratil("PEDREIRA", pedreira);
 }
 
-    // OBRAS
-    obras
+    // OBRAS INTERNAS
+const internas = obras
+.filter(o => !o.oculta && (o.tipo !== "entrega"));
+
+internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
 .forEach(o => {
 
-    if(o.oculta) return;
-
     const lista = filtrados.filter(m =>
-    (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-);
+        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+    );
 
     if(buscando && lista.length === 0) return;
 
-    if(lista.length > 0 || !buscando){
-        criarColunaRetratil(o.nome.toUpperCase(), lista);
-    }
+    criarColunaRetratil(o.nome.toUpperCase(), lista);
+
+});
+
+
+// SEPARADOR VISUAL
+const separador = document.createElement("div");
+separador.style.padding = "10px";
+separador.style.fontWeight = "bold";
+separador.style.textAlign = "center";
+separador.style.background = "#eee";
+separador.innerText = "🚛 ENTREGAS DE MATERIAL";
+
+quadro.appendChild(separador);
+
+
+// OBRAS DE ENTREGA
+const entregas = obras
+.filter(o => !o.oculta && o.tipo === "entrega");
+
+entregas
+.sort((a,b)=> (a.ordem||0) - (b.ordem||0))
+.forEach(o => {
+
+    const lista = filtrados.filter(m =>
+        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+    );
+
+    if(buscando && lista.length === 0) return;
+
+    criarColunaRetratil(o.nome.toUpperCase(), lista);
 
 });
 
@@ -731,6 +761,7 @@ function novoMotorista(){
             nome: n.toUpperCase(),
             placa: p.toUpperCase(),
             telefone: t || "",
+			tipo: "",
             status: "ativo",
             obra: "SEM PROGRAMAÇÃO",
             obsOficina: ""
@@ -764,6 +795,31 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
 });
+	function editarTipo(i){
+
+    const tipos = [
+        "TRUCK",
+        "BITRUCK",
+        "CARRETA",
+    ];
+
+    const atual = motoristas[i].tipo || "";
+
+    const escolha = prompt(
+        "Tipo de caminhão:\n\n" + 
+        tipos.map((t,n)=>`${n+1} - ${t}`).join("\n") +
+        "\n\nAtual: " + atual
+    );
+
+    const index = parseInt(escolha)-1;
+
+    if(tipos[index]){
+        motoristas[i].tipo = tipos[index];
+        salvar();
+        render();
+    }
+
+}
 function filtrarMotoristas(){
 
     const busca = (el("buscaMotorista").value || "").toLowerCase();
@@ -798,13 +854,12 @@ function filtrarMotoristas(){
         <div>
             <strong>${m.nome}</strong>
             <br>
-            <small>${m.placa}</small>
+            <small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
         </div>
 
         <div class="acoes">
-
+		<button class="btn-mini" onclick="editarTipo(${i})">🚚</button>
         <button class="btn-mini" onclick="editarMotorista(${i})">✏️</button>
-
         <button class="btn-mini" onclick="editarTelefone(${i})">📞</button>
 
         <button class="btn-mini btn-danger" onclick="excluirMotorista(${i})">❌</button>
@@ -920,11 +975,28 @@ function abrirMapaVisitante(){
 
 }	
 
-function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({
-    nome:n.toUpperCase(),
-    oculta:false,
-    ordem: obras.length
-}); salvar(); abrirObras(); } }
+function novaObra(){
+
+    const n = prompt("Nome da obra:");
+
+    if(!n) return;
+
+    const tipoEscolha = prompt(
+        "Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL"
+    );
+
+    const tipo = tipoEscolha === "2" ? "entrega" : "interna";
+
+    obras.push({
+        nome: n.toUpperCase(),
+        tipo: tipo,
+        oculta: false,
+        ordem: obras.length
+    });
+
+    salvar();
+    abrirObras();
+}
 	function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
 	function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
 	function moverObra(nome,direcao){
