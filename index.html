@@ -1000,26 +1000,54 @@ function vincularDestino(i){
 
     let destino = null;
 
-    // 🔵 Se digitou número
+    // 🔵 tentar como número
     const numero = parseInt(busca);
 
     if(!isNaN(numero) && obras[numero-1] && numero-1 !== i){
         destino = obras[numero-1].nome;
     }
 
-    // 🔵 Se digitou nome
+    // 🔵 tentar como texto
     if(!destino){
 
-        const termo = busca.toLowerCase();
+        const termo = busca
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g,"");
 
-        const encontrado = obras.find((o,idx)=>
-            idx !== i &&
-            o.nome.toLowerCase().includes(termo)
-        );
+        const encontrados = obras.filter((o,idx)=>{
 
-        if(encontrado){
-            destino = encontrado.nome;
-        }
+            if(idx === i) return false;
+
+            const nome = o.nome
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g,"");
+
+            return nome.includes(termo);
+
+        });
+
+        if(encontrados.length === 1){
+    destino = encontrados[0].nome;
+}
+else if(encontrados.length > 1){
+
+    let lista = "Escolha o destino:\n\n";
+
+    encontrados.forEach((o,n)=>{
+        lista += `${n+1} - ${o.nome}\n`;
+    });
+
+    const escolha = prompt(lista);
+
+    const index = parseInt(escolha)-1;
+
+    if(!isNaN(index) && encontrados[index]){
+        destino = encontrados[index].nome;
+    }
+
+}}
 
     }
 
@@ -1036,49 +1064,7 @@ function vincularDestino(i){
 
 }
 
-    const termo = busca.toLowerCase();
-
-    const resultados = obras
-        .map((o,idx)=>({obra:o,index:idx}))
-        .filter(obj =>
-            obj.index !== i &&
-            obj.obra.nome.toLowerCase().includes(termo)
-        );
-
-    if(resultados.length === 0){
-        alert("Nenhuma obra encontrada.");
-        return;
-    }
-
-    if(resultados.length === 1){
-
-        obras[i].destino = resultados[0].obra.nome;
-
-    }else{
-
-        let lista = "Mais de uma obra encontrada:\n\n";
-
-        resultados.forEach((r,n)=>{
-            lista += `${n+1} - ${r.obra.nome}\n`;
-        });
-
-        const escolha = prompt(lista);
-
-        const indexEscolhido = parseInt(escolha) - 1;
-
-        if(!isNaN(indexEscolhido) && resultados[indexEscolhido]){
-            obras[i].destino = resultados[indexEscolhido].obra.nome;
-        }else{
-            return;
-        }
-
-    }
-
-    salvar();
-    render();
-    abrirObras();
-
-}
+   
 function abrirObras(){
 
     el("modalObras").style.display="flex";
