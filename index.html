@@ -385,6 +385,11 @@ function carregarRealtime(){
         if(dados){
 
             motoristas = dados.motoristas || [];
+			motoristas.forEach(m=>{
+   			if(!m.tipo){
+        	m.tipo = "";
+   			 }
+			});
             obras = dados.obras || [];
             agendaMunk = dados.agendaMunk || {};
             historico = dados.historico || [];
@@ -397,8 +402,9 @@ function carregarRealtime(){
                 }
 
                 if(!o.tipo){
-                    o.tipo = "interna";
-                }
+  				o.tipo = "interna";
+    			salvar();
+				}
 
             });
 
@@ -418,6 +424,16 @@ function finalizarEdicaoObras(){
     el("btnSalvarOrdem").style.display = "none";
 
     salvar();
+    render();
+
+}
+function ativarEdicaoObras(){
+
+    modoEditarObras = true;
+
+    el("btnEditarObras").style.display = "none";
+    el("btnSalvarOrdem").style.display = "inline-block";
+
     render();
 
 }
@@ -518,6 +534,8 @@ function render(){
         separador.style.fontWeight = "bold";
         separador.style.textAlign = "center";
 		separador.style.background = "var(--apoio)";
+		separador.style.marginTop = "10px";
+		separador.style.borderRadius = "6px";
         separador.innerText = "🚛 ENTREGAS DE MATERIAL";
 
         quadro.appendChild(separador);
@@ -819,13 +837,14 @@ window.addEventListener("DOMContentLoaded", () => {
         "\n\nAtual: " + atual
     );
 
-    const index = parseInt(escolha)-1;
+    const index = parseInt(escolha) - 1;
 
-    if(tipos[index]){
-        motoristas[i].tipo = tipos[index];
-        salvar();
-        render();
-    }
+	if(!isNaN(index) && tipos[index]){
+    motoristas[i].tipo = tipos[index];
+    salvar();
+    render();
+	abrirMotoristas();
+}
 
 }
 function filtrarMotoristas(){
@@ -927,6 +946,7 @@ function filtrarObras(){
             <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
 
             <button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
+			<button class="btn-mini" onclick="editarTipoObra(${i})">🚧</button>
 
             <button class="btn-mini" onclick="toggleOculta(${i})">
             ${o.oculta ? "Mostrar" : "Ocultar"}
@@ -1187,7 +1207,25 @@ function abrirHistorico(){
         salvar();
 
     }
+		
 
+
+}
+	function editarTipoObra(i){
+
+    const escolha = prompt(
+        "Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL"
+    );
+
+    if(escolha === "2"){
+        obras[i].tipo = "entrega";
+    }else{
+        obras[i].tipo = "interna";
+    }
+
+    salvar();
+    render();
+    abrirObras();
 
 }
 function toggleColuna(n){ colunasAbertas[n]=!colunasAbertas[n]; render(); }
