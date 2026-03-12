@@ -88,7 +88,6 @@
 		color:#777;
 	}
 		
-        .cardStat span{ font-size:0.7rem; font-weight:bold; text-transform:uppercase; color:#777; }
 
         /* LAYOUT */
         .layout-principal{ display:flex; gap:20px; padding:0 20px 20px; align-items:flex-start; }
@@ -236,7 +235,6 @@ left:0;
 
 <div id="app" style="display:none;">
     <header>
-		<div id="menuLateral" class="menuLateral">
 
 		<button onclick="abrirMotoristas()">Motoristas</button>
 
@@ -262,18 +260,20 @@ left:0;
             <input id="busca" placeholder="🔍 BUSCAR MOTORISTA OU PLACA...">
         </div>
         <div class="right">
-			<button onclick="toggleMenu()">☰</button>
-            <button onclick="abrirMotoristas()" id="btnMotoristas">Motoristas</button>
-            <button onclick="abrirObras()" id="btnObras">Obras</button>
-            <button onclick="abrirCentralWhats()" id="btnWhats" class="btn-success whatsapp">📲 Central Whats</button>
-			<button onclick="abrirHistorico()">📊 Histórico</button>
-            <button class="btn-danger" onclick="location.reload()">Sair</button>
-			<button class="btn-mini" onclick="abrirMapaVisitante()">🗺️ Obras</button>
-			<button id="btnEditarObras" onclick="ativarEdicaoObras()">✏️ Editar Obras</button>
-<button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
-        </div>
+    <button onclick="toggleMenu()">☰</button>
+</div>
     </header>
 
+	<div id="menuLateral" class="menuLateral">
+    <button onclick="abrirMotoristas()">Motoristas</button>
+    <button onclick="abrirObras()">Obras</button>
+    <button onclick="abrirCentralWhats()">Central Whats</button>
+    <button onclick="abrirHistorico()">Histórico</button>
+    <button onclick="abrirMapaVisitante()">Mapa Obras</button>
+    <button id="btnEditarObras" onclick="ativarEdicaoObras()">✏️ Editar Obras</button>
+    <button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
+    <button class="btn-danger" onclick="location.reload()">Sair</button>
+</div>
     <div id="dashboard" class="dashboard"></div>
 
     <div class="layout-principal">
@@ -650,115 +650,47 @@ function contarTipos(lista){
 }
 	function renderDashboard(){
 
-const ofi = motoristas.filter(m=>m.status==="oficina").length;
+    const ofi = motoristas.filter(m=>m.status==="oficina").length;
 
-const livres = motoristas.filter(m=>{
+    const livres = motoristas.filter(m=>{
 
-if(m.status==="oficina") return false;
+        if(m.status==="oficina") return false;
 
-const obra = m.obra || "SEM PROGRAMAÇÃO";
+        const obra = m.obra || "SEM PROGRAMAÇÃO";
 
-if(obra==="SEM PROGRAMAÇÃO") return true;
+        if(obra==="SEM PROGRAMAÇÃO") return true;
 
-const o = obras.find(x=>x.nome===obra);
+        const o = obras.find(x=>x.nome===obra);
 
-return o && o.oculta;
+        return o && o.oculta;
 
-}).length;
-
-const obrasAtivas = obras.filter(o=>!o.oculta).length;
-
-el("dashboard").innerHTML = `
-
-<div class="cardStat">
-<h3>${motoristas.length}</h3>
-<span>FROTA TOTAL</span>
-</div>
-
-<div class="cardStat">
-<h3>${ofi}</h3>
-<span>OFICINA</span>
-</div>
-
-<div class="cardStat">
-<h3>${livres}</h3>
-<span>LIVRES</span>
-</div>
-
-<div class="cardStat">
-<h3>${obrasAtivas}</h3>
-<span>OBRAS ATIVAS</span>
-</div>
-
-`;
-
-}
+    }).length;
 
     const obrasAtivas = obras.filter(o=>!o.oculta).length;
 
-    const frotaTipos = contarTipos(motoristas);
-    const oficinaTipos = contarTipos(ofiLista);
-    const livreTipos = contarTipos(livreLista);
+    el("dashboard").innerHTML = `
 
-    el("dashboard").innerHTML=`
+    <div class="cardStat">
+        <h3>${motoristas.length}</h3>
+        <span>FROTA TOTAL</span>
+    </div>
 
-<div class="cardStat" onclick="this.classList.toggle('virado')">
-<div class="cardInner">
+    <div class="cardStat">
+        <h3>${ofi}</h3>
+        <span>OFICINA</span>
+    </div>
 
-<div class="cardFace">
-<h3>${motoristas.length}</h3>
-<span>FROTA</span>
-</div>
+    <div class="cardStat">
+        <h3>${livres}</h3>
+        <span>LIVRES</span>
+    </div>
 
-<div class="cardFace cardBack">
-TRUCKS: ${frotaTipos.trucks}<br>
-BITRUCKS: ${frotaTipos.bitrucks}<br>
-CARRETAS: ${frotaTipos.carretas}
-</div>
+    <div class="cardStat">
+        <h3>${obrasAtivas}</h3>
+        <span>OBRAS ATIVAS</span>
+    </div>
 
-</div>
-</div>
-
-<div class="cardStat" onclick="this.classList.toggle('virado')">
-<div class="cardInner">
-
-<div class="cardFace">
-<h3>${ofiLista.length}</h3>
-<span>OFICINA</span>
-</div>
-
-<div class="cardFace cardBack">
-TRUCKS: ${oficinaTipos.trucks}<br>
-BITRUCKS: ${oficinaTipos.bitrucks}<br>
-CARRETAS: ${oficinaTipos.carretas}
-</div>
-
-</div>
-</div>
-
-<div class="cardStat" onclick="this.classList.toggle('virado')">
-<div class="cardInner">
-
-<div class="cardFace">
-<h3>${livreLista.length}</h3>
-<span>LIVRES</span>
-</div>
-
-<div class="cardFace cardBack">
-TRUCKS: ${livreTipos.trucks}<br>
-BITRUCKS: ${livreTipos.bitrucks}<br>
-CARRETAS: ${livreTipos.carretas}
-</div>
-
-</div>
-</div>
-
-<div class="cardStat">
-<h3>${obrasAtivas}</h3>
-<span>OBRAS ATIVAS</span>
-</div>
-
-`;
+    `;
 
 }
 function criarColunaRetratil(nome,lista,titulo){
@@ -1556,8 +1488,9 @@ function toggleColuna(n){
     render();
 
 }
-function toggleMenu(){
-el("menuLateral").classList.toggle("aberto");
+function toggleMenu() {
+    const menu = document.getElementById("menuLateral");
+    if(menu) menu.classList.toggle("aberto");
 }
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
 el("pipa-txt").onchange = salvar;
