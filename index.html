@@ -972,22 +972,61 @@ function filtrarObras(){
 }
 function vincularDestino(i){
 
-    let lista = obras
-        .map((o,idx)=>`${idx+1} - ${o.nome}`)
-        .join("\n");
+    const origem = obras[i].nome;
 
-    const escolha = prompt(
-        "Escolha a obra destino:\n\n"+lista+"\n\n0 - Remover destino"
+    const busca = prompt(
+        `Vincular destino para:\n\n${origem}\n\n` +
+        "Digite parte do NOME da obra ou o NÚMERO.\n\n" +
+        "Digite 0 para REMOVER vínculo."
     );
 
-    const index = parseInt(escolha)-1;
+    if(busca === null) return;
 
-    if(escolha === "0"){
+    if(busca === "0"){
         obras[i].destino = "";
+        salvar();
+        render();
+        abrirObras();
+        return;
     }
-    else if(!isNaN(index) && obras[index] && index !== i){
-    obras[i].destino = obras[index].nome;
-	}
+
+    const termo = busca.toLowerCase();
+
+    const resultados = obras
+        .map((o,idx)=>({obra:o,index:idx}))
+        .filter(obj =>
+            obj.index !== i &&
+            obj.obra.nome.toLowerCase().includes(termo)
+        );
+
+    if(resultados.length === 0){
+        alert("Nenhuma obra encontrada.");
+        return;
+    }
+
+    if(resultados.length === 1){
+
+        obras[i].destino = resultados[0].obra.nome;
+
+    }else{
+
+        let lista = "Mais de uma obra encontrada:\n\n";
+
+        resultados.forEach((r,n)=>{
+            lista += `${n+1} - ${r.obra.nome}\n`;
+        });
+
+        const escolha = prompt(lista);
+
+        const indexEscolhido = parseInt(escolha) - 1;
+
+        if(!isNaN(indexEscolhido) && resultados[indexEscolhido]){
+            obras[i].destino = resultados[indexEscolhido].obra.nome;
+        }else{
+            return;
+        }
+
+    }
 
     salvar();
     render();
