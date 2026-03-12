@@ -153,6 +153,15 @@ cursor:grabbing;
     cursor: default;
     opacity: 0.8;
 }
+		.drop-indicator{
+height:8px;
+background:transparent;
+transition:0.2s;
+}
+
+.drop-indicator.ativo{
+background:var(--principal);
+}
     </style>
 </head>
 <body>
@@ -553,7 +562,18 @@ const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
 
 col.ondragover = e=>e.preventDefault();
     const aberto = colunasAbertas[nome] || false;
-    col.innerHTML=`<h3 onclick="toggleColuna('${nome}')"><div>${nome} (${lista.length})</div><span>${aberto?"▲":"▼"}</span></h3><div class="corpo-coluna ${aberto?"aberto":""}"></div>`;
+    col.innerHTML=`
+	<h3 onclick="toggleColuna('${nome}')">
+	<div>${nome} (${lista.length})</div>
+	<div style="display:flex;gap:5px">
+	${modoEditarObras ? `
+	<button class="btn-mini" onclick="moverObra('${nome}',-1)">⬆</button>
+	<button class="btn-mini" onclick="moverObra('${nome}',1)">⬇</button>
+	` : ""}
+	<span>${aberto?"▲":"▼"}</span>
+	</div>
+	</h3>
+	`;
     const corpo = col.querySelector(".corpo-coluna");
 	corpo.addEventListener("dragover",(e)=>{
     e.preventDefault();
@@ -582,43 +602,48 @@ titulo.addEventListener("drop",(e)=>{
     render();
 });
 
-	titulo.ondragover = e=>{
+col.addEventListener("dragover",(e)=>{
+    if(!modoEditarObras) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-};
-
-corpo.ondragover = e=>{
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-};
-
-if(!modoEditarObras){
-
-    titulo.ondrop = e=>soltar(e,nome);
-    corpo.ondrop = e=>soltar(e,nome);
-
-}
-    lista.forEach(m=>{
-    const card=document.createElement("div");
-    card.className="caminhao";
-    // Só permite arrastar o motorista se o modo de edição de obras estiver DESLIGADO
-    card.draggable = (modo === "admin" && !modoEditarObras); 
-    
-    card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
-    
-    card.ondragstart = (e)=>{
-        if(modoEditarObras) {
-            e.preventDefault();
-            return false;
-        }
-        e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
-        e.dataTransfer.effectAllowed = "move";
-    };
-    corpo.appendChild(card);
 });
 
-el("quadro").appendChild(col);
+if(modoEditarObras){
+    const indicador = document.createElement("div");
+    indicador.className = "drop-indicator";
+
+    indicador.addEventListener("dragover",(e)=>{
+        e.preventDefault();
+        indicador.classList.add("ativo");
+    });
+
+    indicador.addEventListener("dragleave",()=>{
+        indicador.classList.remove("ativo");
+    });
+
+    indicador.addEventListener("drop",(e)=>{
+        e.preventDefault();
+        indicador.classList.remove("ativo");
+
+        if(!obraArrastando) return;
+
+        const origemIndex = obras.findIndex(o=>o.nome.toUpperCase()===obraArrastando);
+
+        const destinoIndex = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+
+        const movida = obras.splice(origemIndex,1)[0];
+        obras.splice(destinoIndex,0,movida);
+
+        obras.forEach((o,i)=>o.ordem=i);
+
+        salvar();
+        render();
+    });
+
+    el("quadro").appendChild(indicador);
 }
+
+el("quadro").appendChild(col);
 	
 function soltar(e,destino){
 
@@ -881,8 +906,28 @@ function novaObra(){ const n=prompt("Nome da obra:"); if(n){ obras.push({
     oculta:false,
     ordem: obras.length
 }); salvar(); abrirObras(); } }
-function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
-function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
+	function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
+	function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
+	function moverObra(nome,direcao){
+
+	const index = obras.findIndex(o=>o.nome.toUpperCase()===nome);
+	
+	if(index === -1) return;
+
+	const novoIndex = index + direcao;
+
+	if(novoIndex < 0 || novoIndex >= obras.length) return;
+
+	const temp = obras[index];
+	obras[index] = obras[novoIndex];
+	obras[novoIndex] = temp;
+
+	obras.forEach((o,i)=>o.ordem=i);
+
+	salvar();
+	render();
+
+	}
 
 function abrirCentralWhats(){
     const esc = motoristas.filter(m=>m.obra && m.telefone);
