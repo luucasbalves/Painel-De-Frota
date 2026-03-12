@@ -617,19 +617,26 @@ col.ondragover = e=>e.preventDefault();
 	</div>
 	</h3>
 
-<div class="corpo-coluna ${aberto ? "aberto" : ""}"></div>
+	<div class="corpo-coluna ${aberto ? "aberto" : ""}"></div>
 `;
     const corpo = col.querySelector(".corpo-coluna");
+	corpo.ondrop = (e)=> soltar(e,nome);
+corpo.ondragover = (e)=> e.preventDefault();
 	lista.forEach((m,i)=>{
 
     const card = document.createElement("div");
-    card.className = "caminhao";
+	card.className = "caminhao";
+	card.draggable = (modo === "admin");
 
-    card.innerHTML = `
-    <strong>${m.nome}</strong><br>
-    <small>${m.placa}</small>
-    ${m.obsOficina ? `<br><small>${m.obsOficina}</small>` : ""}
-    `;
+	card.ondragstart = (e)=>{
+    e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
+};
+
+	card.innerHTML = `
+	<strong>${m.nome}</strong><br>
+	<small>${m.placa}</small>
+	${m.obsOficina ? `<br><small>${m.obsOficina}</small>` : ""}
+	`;
 
     corpo.appendChild(card);
 
