@@ -249,7 +249,7 @@ width: 260px;
 height: 100%;
 background: white;
 z-index: 5000;
-transition: 0.3s;
+transition:left 0.3s ease;
 padding: 20px;
 box-shadow: 5px 0 15px rgba(0,0,0,0.3);
 display:flex;
@@ -315,6 +315,7 @@ font-size:14px;
    	 </style>
 	</head>
 <body>
+	<div id="overlay-fundo" class="menu-overlay" onclick="toggleMenu()"></div>
 
 <div id="login">
   <div class="loginBox">
@@ -1578,19 +1579,18 @@ function abrirHistorico(){
 
 }
 function toggleMenu() {
-    const menu = el("menuLateral");
-    menu.classList.toggle("aberto");
-    
-    // Cria um fundo escuro se não existir, para fechar o menu ao clicar fora
-    let overlay = el("overlay-fundo");
-    if(!overlay){
-        overlay = document.createElement("div");
-        overlay.id = "overlay-fundo";
-        overlay.className = "menu-overlay";
-        overlay.onclick = toggleMenu;
-        document.body.appendChild(overlay);
-    }
-    overlay.classList.toggle("ativo");
+
+const menu = document.getElementById("menuLateral");
+const overlay = document.getElementById("overlay-fundo");
+
+menu.classList.toggle("aberto");
+
+if(menu.classList.contains("aberto")){
+    overlay.style.display = "block";
+}else{
+    overlay.style.display = "none";
+}
+
 }
 function atualizarRelogio(){
 
