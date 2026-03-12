@@ -55,69 +55,38 @@
         #busca{ padding:10px 20px; border-radius:20px; border:2px solid var(--apoio); width:250px; outline:none; }
 
         /* DASHBOARD */
-        .dashboard{
-display:flex;
-gap:10px;
-padding:20px;
-flex-wrap:wrap;
-}
-        .cardStat{
-    flex:1;
-    min-height:70px;
-    perspective:1000px;
-    cursor:pointer;
-}
+       	.dashboard{
+		display:grid;
+		grid-template-columns:repeat(4,1fr);
+		gap:12px;
+		padding:20px;
+	}
 
-.cardInner{
-    position:relative;
-    width:100%;
-    height:100%;
-    text-align:center;
-    transition:transform 0.6s;
-    transform-style:preserve-3d;
-}
+		.cardStat{
+		background:white;
+		border-radius:10px;
+		border-bottom:3px solid var(--principal);
+		padding:15px;
+		text-align:center;
+		font-weight:bold;
+		box-shadow:0 2px 4px rgba(0,0,0,0.08);
+		cursor:pointer;
+		transition:transform .2s;
+	}
 
-.cardStat.virado .cardInner{
-    transform:rotateY(180deg);
-}
+		.cardStat:hover{
+		transform:translateY(-3px);
+	}
 
-.cardFace{
-    position:absolute;
-    inset:0;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
+		.cardStat h3{
+		margin:0;
+		font-size:22px;
+	}
 
-    background:white;
-    border-radius:10px;
-    border-bottom:3px solid var(--principal);
-    box-shadow:0 2px 4px rgba(0,0,0,0.05);
-
-    backface-visibility:hidden;
-}
-
-.cardBack{
-    transform:rotateY(180deg);
-}
-
-	.cardStat.virado .cardInner{
-    	transform:rotateY(180deg);
-}
-
-	.cardFace{
-    	position:absolute;
-    	width:100%;
-   	 	backface-visibility:hidden;
-    	background:white;
-    	padding:12px;
-   	 	border-radius:10px;
-  	  	border-bottom:3px solid var(--principal);
-}
-
-	.cardBack{
-   		 transform:rotateY(180deg);
-}
+		.cardStat span{
+		font-size:11px;
+		color:#777;
+	}
 		
         .cardStat span{ font-size:0.7rem; font-weight:bold; text-transform:uppercase; color:#777; }
 
@@ -205,27 +174,47 @@ flex-wrap:wrap;
     	.calendario { grid-template-columns: repeat(3, 1fr); }
 	}
 		.coluna[draggable="true"]{
-cursor:grab;
-}
+		cursor:grab;
+	}
 
-.coluna[draggable="true"]:active{
-cursor:grabbing;
-}
+		.coluna[draggable="true"]:active{
+		cursor:grabbing;
+	}
 		.caminhao[draggable="false"] {
-    cursor: default;
-    opacity: 0.8;
-}
+    	cursor: default;
+    	opacity: 0.8;
+	}
 		.drop-indicator{
-height:8px;
-background:transparent;
-transition:0.2s;
+		height:8px;
+		background:transparent;
+		transition:0.2s;
+	}
+
+		.drop-indicator.ativo{
+		background:var(--principal);
+	}
+
+		.menuLateral{
+position:fixed;
+top:0;
+left:-250px;
+width:250px;
+height:100%;
+background:white;
+box-shadow:3px 0 10px rgba(0,0,0,0.2);
+padding:20px;
+display:flex;
+flex-direction:column;
+gap:10px;
+transition:0.3s;
+z-index:999;
 }
 
-.drop-indicator.ativo{
-background:var(--principal);
+.menuLateral.aberto{
+left:0;
 }
-    </style>
-</head>
+   	 </style>
+	</head>
 <body>
 
 <div id="login">
@@ -247,6 +236,21 @@ background:var(--principal);
 
 <div id="app" style="display:none;">
     <header>
+		<div id="menuLateral" class="menuLateral">
+
+		<button onclick="abrirMotoristas()">Motoristas</button>
+
+		<button onclick="abrirObras()">Obras</button>
+
+		<button onclick="abrirCentralWhats()">Central Whats</button>
+
+		<button onclick="abrirHistorico()">Histórico</button>
+
+		<button onclick="abrirMapaVisitante()">Mapa Obras</button>
+
+		<button onclick="location.reload()" class="btn-danger">Sair</button>
+
+</div>
         <div class="left">
             <h1>🚚 Quadro de Frota</h1>
             <div class="statusBar">
@@ -258,6 +262,7 @@ background:var(--principal);
             <input id="busca" placeholder="🔍 BUSCAR MOTORISTA OU PLACA...">
         </div>
         <div class="right">
+			<button onclick="toggleMenu()">☰</button>
             <button onclick="abrirMotoristas()" id="btnMotoristas">Motoristas</button>
             <button onclick="abrirObras()" id="btnObras">Obras</button>
             <button onclick="abrirCentralWhats()" id="btnWhats" class="btn-success whatsapp">📲 Central Whats</button>
@@ -645,21 +650,49 @@ function contarTipos(lista){
 }
 	function renderDashboard(){
 
-    const ofiLista = motoristas.filter(m=>m.status==="oficina");
+const ofi = motoristas.filter(m=>m.status==="oficina").length;
 
-    const livreLista = motoristas.filter(m => {
+const livres = motoristas.filter(m=>{
 
-        if(m.status === "oficina") return false;
+if(m.status==="oficina") return false;
 
-        const obra = m.obra || "SEM PROGRAMAÇÃO";
+const obra = m.obra || "SEM PROGRAMAÇÃO";
 
-        if(obra === "SEM PROGRAMAÇÃO") return true;
+if(obra==="SEM PROGRAMAÇÃO") return true;
 
-        const obraRelacionada = obras.find(o => o.nome === obra);
+const o = obras.find(x=>x.nome===obra);
 
-        return obraRelacionada && obraRelacionada.oculta;
+return o && o.oculta;
 
-    });
+}).length;
+
+const obrasAtivas = obras.filter(o=>!o.oculta).length;
+
+el("dashboard").innerHTML = `
+
+<div class="cardStat">
+<h3>${motoristas.length}</h3>
+<span>FROTA TOTAL</span>
+</div>
+
+<div class="cardStat">
+<h3>${ofi}</h3>
+<span>OFICINA</span>
+</div>
+
+<div class="cardStat">
+<h3>${livres}</h3>
+<span>LIVRES</span>
+</div>
+
+<div class="cardStat">
+<h3>${obrasAtivas}</h3>
+<span>OBRAS ATIVAS</span>
+</div>
+
+`;
+
+}
 
     const obrasAtivas = obras.filter(o=>!o.oculta).length;
 
@@ -1522,6 +1555,9 @@ function toggleColuna(n){
     colunasAbertas[n] = !colunasAbertas[n];
     render();
 
+}
+function toggleMenu(){
+el("menuLateral").classList.toggle("aberto");
 }
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
 el("pipa-txt").onchange = salvar;
