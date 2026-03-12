@@ -204,25 +204,32 @@
 		background:var(--principal);
 	}
 
-		.menuLateral{
-position:fixed;
-top:0;
-left:-250px;
-width:250px;
-height:100%;
-background:white;
-box-shadow:3px 0 10px rgba(0,0,0,0.2);
-padding:20px;
-display:flex;
-flex-direction:column;
-gap:10px;
-transition:0.3s;
-z-index:999;
+		.menuLateral {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Escondido */
+    width: 250px;
+    height: 100%;
+    background: white;
+    z-index: 5000; /* Aumentado para ficar sobre o header */
+    transition: 0.3s;
+    padding: 20px;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.3);
 }
 
-.menuLateral.aberto{
-left:0;
+.menuLateral.aberto {
+    left: 0; /* Mostra o menu */
 }
+
+/* Overlay para fechar ao clicar fora */
+.menu-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 4999;
+}
+.menu-overlay.ativo { display: block; }
    	 </style>
 	</head>
 <body>
@@ -245,10 +252,15 @@ left:0;
 </div>
 
 <div id="app" style="display:none;">
-    <header style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:sticky; top:0; z-index:100;">
-    <button onclick="toggleMenu()">☰</button>
-    <input id="busca" placeholder="🔍 BUSCAR MOTORISTA OU PLACA..." style="flex:1; margin:0 20px; max-width:400px; padding:10px 15px; border-radius:20px; border:2px solid var(--apoio);">
-    <button onclick="location.reload()" class="btn-danger">Sair</button>
+    <header style="display:flex; justify-content:space-between; align-items:center; padding:10px 20px; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:sticky; top:0; z-index:100; border-bottom:2px solid var(--apoio);">
+    <button onclick="toggleMenu()" style="font-size: 24px; background: none; color: var(--principal); border: none; cursor: pointer; padding: 5px;">☰</button>
+    
+    <input id="busca" placeholder="🔍 BUSCAR..." style="flex:1; margin:0 15px; max-width:300px; padding:10px 15px; border-radius:20px; border:2px solid var(--apoio); outline: none; font-size: 14px;">
+    
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+        <div id="badge-modo" style="font-size: 9px; font-weight: bold; color: var(--principal); white-space: nowrap;"></div>
+        <button onclick="location.reload()" class="btn-danger" style="padding: 4px 8px; font-size: 10px;">Sair</button>
+    </div>
 </header>
 
 	<div id="menuLateral" class="menuLateral">
@@ -680,49 +692,56 @@ function contarTipos(lista){
     `;
 
 }
-function criarColunaRetratil(nome,lista,titulo){
-	if(!titulo) titulo = nome;
-	if(!lista) lista = [];
+function criarColunaRetratil(nome, lista, titulo) {
+    if (!titulo) titulo = nome;
+    if (!lista) lista = [];
     const col = document.createElement("div");
-col.className="coluna";
-if(modo==="admin" && modoEditarObras && !["OFICINA","SEM PROGRAMAÇÃO","PEDREIRA"].includes(nome)){
+    col.className = "coluna";
+    
+    // Lógica de Arrastar Colunas (Admin)
+    if (modo === "admin" && modoEditarObras && !["OFICINA", "SEM PROGRAMAÇÃO", "PEDREIRA"].includes(nome)) {
+        col.draggable = true;
+        col.addEventListener("dragstart", () => { obraArrastando = nome; col.style.opacity = "0.4"; });
+        col.addEventListener("dragend", () => { obraArrastando = null; col.style.opacity = "1"; });
+    }
 
-    col.draggable = true;
+    const aberto = colunasAbertas[nome] || false;
+    col.innerHTML = `
+        <h3 onclick="toggleColuna('${nome}')">
+            <div>${titulo} (${lista.length})</div>
+            <div style="display:flex;gap:5px">
+                ${modoEditarObras ? `
+                    <button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',-1)">⬆</button>
+                    <button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',1)">⬇</button>
+                ` : ""}
+                <span>${aberto ? "▲" : "▼"}</span>
+            </div>
+        </h3>
+        <div class="corpo-coluna ${aberto ? "aberto" : ""}"></div>
+    `;
 
-    col.addEventListener("dragstart",()=>{
-        obraArrastando = nome;
-        col.style.opacity = "0.4";
+    const corpo = col.querySelector(".corpo-coluna");
+    
+    // Eventos de Drop de Motoristas
+    corpo.ondragover = (e) => e.preventDefault();
+    corpo.ondrop = (e) => soltar(e, nome);
+
+    lista.forEach((m) => {
+        const i = motoristas.indexOf(m);
+        const card = document.createElement("div");
+        card.className = "caminhao";
+        card.draggable = (modo === "admin");
+        card.ondragstart = (e) => { e.dataTransfer.setData("text/plain", i); };
+
+        card.innerHTML = `
+            <strong>${m.nome}</strong><br>
+            <small>${m.placa} ${m.tipo ? "• " + m.tipo : ""}</small>
+            ${m.obsOficina ? `<br><small style="color:red">⚠️ ${m.obsOficina}</small>` : ""}
+        `;
+        corpo.appendChild(card);
     });
 
-    col.addEventListener("dragend",()=>{
-        obraArrastando = null;
-        col.style.opacity = "1";
-    });
-
-    col.addEventListener("dragover",(e)=>{
-        e.preventDefault();
-    });
-
-    col.addEventListener("drop",(e)=>{
-    e.preventDefault();
-
-    if(!obraArrastando || obraArrastando === nome) return;
-
-    const origemIndex = obras.findIndex(o=>o.nome === obraArrastando);
-	const destinoIndex = obras.findIndex(o=>o.nome === nome);
-
-    if(origemIndex === -1 || destinoIndex === -1) return;
-	if(origemIndex === destinoIndex) return;
-
-    const movida = obras.splice(origemIndex,1)[0];
-    obras.splice(destinoIndex,0,movida);
-
-    obras.forEach((o,i)=>o.ordem=i);
-
-    salvar();
-    render();
-});
-
+    el("quadro").appendChild(col);
 }
 
 col.ondragover = e=>e.preventDefault();
@@ -1467,13 +1486,20 @@ function abrirHistorico(){
     abrirObras();
 
 }
-function toggleColuna(n){
-
-    if(modoEditarObras) return;
-
-    colunasAbertas[n] = !colunasAbertas[n];
-    render();
-
+function toggleMenu() {
+    const menu = el("menuLateral");
+    menu.classList.toggle("aberto");
+    
+    // Cria um fundo escuro se não existir, para fechar o menu ao clicar fora
+    let overlay = el("overlay-fundo");
+    if(!overlay){
+        overlay = document.createElement("div");
+        overlay.id = "overlay-fundo";
+        overlay.className = "menu-overlay";
+        overlay.onclick = toggleMenu;
+        document.body.appendChild(overlay);
+    }
+    overlay.classList.toggle("ativo");
 }
 function toggleMenu() {
     const menu = document.getElementById("menuLateral");
