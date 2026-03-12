@@ -130,7 +130,18 @@
 		overflow-y:auto; 
 		padding-right:5px;
 		}
+		.layout-principal {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    flex-wrap: wrap;
+}
 
+.quadro-vertical {
+    max-width: 1200px;
+    width: 100%;
+}
 	@media (max-width: 600px) {
     	header { flex-direction: column; gap: 10px; }
     	#busca { width: 100%; }
@@ -234,35 +245,11 @@ left:0;
 </div>
 
 <div id="app" style="display:none;">
-    <header>
-
-		<button onclick="abrirMotoristas()">Motoristas</button>
-
-		<button onclick="abrirObras()">Obras</button>
-
-		<button onclick="abrirCentralWhats()">Central Whats</button>
-
-		<button onclick="abrirHistorico()">Histórico</button>
-
-		<button onclick="abrirMapaVisitante()">Mapa Obras</button>
-
-		<button onclick="location.reload()" class="btn-danger">Sair</button>
-
-</div>
-        <div class="left">
-            <h1>🚚 Quadro de Frota</h1>
-            <div class="statusBar">
-                <span id="badge-modo"></span>
-                <span id="clima">☁️ Verificando clima...</span>
-            </div>
-        </div>
-        <div class="center">
-            <input id="busca" placeholder="🔍 BUSCAR MOTORISTA OU PLACA...">
-        </div>
-        <div class="right">
+    <header style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.1); position:sticky; top:0; z-index:100;">
     <button onclick="toggleMenu()">☰</button>
-</div>
-    </header>
+    <input id="busca" placeholder="🔍 BUSCAR MOTORISTA OU PLACA..." style="flex:1; margin:0 20px; max-width:400px; padding:10px 15px; border-radius:20px; border:2px solid var(--apoio);">
+    <button onclick="location.reload()" class="btn-danger">Sair</button>
+</header>
 
 	<div id="menuLateral" class="menuLateral">
     <button onclick="abrirMotoristas()">Motoristas</button>
