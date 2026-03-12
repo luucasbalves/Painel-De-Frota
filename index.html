@@ -57,7 +57,39 @@
         /* DASHBOARD */
         .dashboard{ display:flex; gap:10px; padding:20px; }
         .cardStat{ background:white; padding:12px; border-radius:10px; flex:1; text-align:center; border-bottom:3px solid var(--principal); box-shadow:0 2px 4px rgba(0,0,0,0.05); }
-        .cardStat h3{ margin:0; font-size:1.4rem; color:var(--principal); }
+        .cardStat{
+    perspective:1000px;
+    cursor:pointer;
+}
+
+	.cardInner{
+    	position:relative;
+    	width:100%;
+   	 	height:100%;
+    	text-align:center;
+    	transition:transform 0.6s;
+	    transform-style:preserve-3d;
+		min-height:60px;;
+}
+
+	.cardStat.virado .cardInner{
+    	transform:rotateY(180deg);
+}
+
+	.cardFace{
+    	position:absolute;
+    	width:100%;
+   	 	backface-visibility:hidden;
+    	background:white;
+    	padding:12px;
+   	 	border-radius:10px;
+  	  	border-bottom:3px solid var(--principal);
+}
+
+	.cardBack{
+   		 transform:rotateY(180deg);
+}
+		
         .cardStat span{ font-size:0.7rem; font-weight:bold; text-transform:uppercase; color:#777; }
 
         /* LAYOUT */
@@ -304,7 +336,8 @@ oninput="filtrarObras()"
 <script>
 let modoEditarObras = false;
 let obraArrastando = null;
-let historico = [];	
+let historico = [];
+let ultimoSnapshot = null;
 const firebaseConfig = {
   apiKey: "AIzaSyDom32F_eZw0mTSsb1U0UHqlJXH8TcslGA",
   authDomain: "painel-frota-5c761.firebaseapp.com",
@@ -345,7 +378,9 @@ function iniciar(){
     }
     carregarRealtime();
     buscarClima();
+	setInterval(snapshotDiario, 60000);
 }
+
 
 async function buscarClima(){
     const climaEl = el("clima");
@@ -562,17 +597,100 @@ function render(){
     }
 
 }
+function contarTipos(lista){
 
-function renderDashboard(){
-    const ofi = motoristas.filter(m=>m.status==="oficina").length;
-    const livre = motoristas.filter(m=> (m.obra || "SEM PROGRAMAÇÃO")==="SEM PROGRAMAÇÃO" && m.status!=="oficina").length;
-    const ativas = obras.filter(o=>!o.oculta).length;
+    let trucks = 0;
+    let bitrucks = 0;
+    let carretas = 0;
+
+    lista.forEach(m=>{
+
+        if(m.tipo==="TRUCK") trucks++;
+        if(m.tipo==="BITRUCK") bitrucks++;
+        if(m.tipo==="CARRETA") carretas++;
+
+    });
+
+    return {trucks,bitrucks,carretas};
+
+}
+	function renderDashboard(){
+
+    const ofiLista = motoristas.filter(m=>m.status==="oficina");
+
+    const livreLista = motoristas.filter(m => {
+
+        if(m.status === "oficina") return false;
+
+        const obra = m.obra || "SEM PROGRAMAÇÃO";
+
+        if(obra === "SEM PROGRAMAÇÃO") return true;
+
+        const obraRelacionada = obras.find(o => o.nome === obra);
+
+        return obraRelacionada && obraRelacionada.oculta;
+
+    });
+
+    const frotaTipos = contarTipos(motoristas);
+    const oficinaTipos = contarTipos(ofiLista);
+    const livreTipos = contarTipos(livreLista);
+
     el("dashboard").innerHTML=`
-        <div class="cardStat"><h3>${motoristas.length}</h3><span>Frota</span></div>
-        <div class="cardStat"><h3>${ofi}</h3><span>Oficina</span></div>
-        <div class="cardStat"><h3>${livre}</h3><span>Livres</span></div>
-        <div class="cardStat"><h3>${ativas}</h3><span>Ativas</span></div>
-    `;
+
+<div class="cardStat" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
+
+<div class="cardFace">
+<h3>${motoristas.length}</h3>
+<span>FROTA</span>
+</div>
+
+<div class="cardFace cardBack">
+TRUCKS: ${frotaTipos.trucks}<br>
+BITRUCKS: ${frotaTipos.bitrucks}<br>
+CARRETAS: ${frotaTipos.carretas}
+</div>
+
+</div>
+</div>
+
+<div class="cardStat" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
+
+<div class="cardFace">
+<h3>${ofiLista.length}</h3>
+<span>OFICINA</span>
+</div>
+
+<div class="cardFace cardBack">
+TRUCKS: ${oficinaTipos.trucks}<br>
+BITRUCKS: ${oficinaTipos.bitrucks}<br>
+CARRETAS: ${oficinaTipos.carretas}
+</div>
+
+</div>
+</div>
+
+<div class="cardStat" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
+
+<div class="cardFace">
+<h3>${livreLista.length}</h3>
+<span>LIVRES</span>
+</div>
+
+<div class="cardFace cardBack">
+TRUCKS: ${livreTipos.trucks}<br>
+BITRUCKS: ${livreTipos.bitrucks}<br>
+CARRETAS: ${livreTipos.carretas}
+</div>
+
+</div>
+</div>
+
+`;
+
 }
 
 function criarColunaRetratil(nome,lista,titulo){
@@ -1220,6 +1338,37 @@ function abrirHistorico(){
     }
 
     salvar();
+
+}
+	function snapshotDiario(){
+
+    const agora = new Date();
+
+    const hoje = agora.toLocaleDateString("pt-BR");
+
+    if(ultimoSnapshot === hoje) return;
+
+    if(agora.getHours() >= 5){
+
+        motoristas.forEach(m=>{
+
+            historico.unshift({
+                motorista: m.nome,
+                de: m.obra || "SEM PROGRAMAÇÃO",
+                para: m.obra || "SEM PROGRAMAÇÃO",
+                data: agora.toLocaleString("pt-BR"),
+                tipo: "SNAPSHOT"
+            });
+
+        });
+
+        ultimoSnapshot = hoje;
+
+        salvar();
+
+        console.log("Snapshot diário registrado");
+
+    }
 
 }
 	function filtrarHistorico(){
