@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Painel de Frota Oficial</title>
     <link rel="manifest" href="manifest.json">
+	<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+    .then(() => console.log("Service Worker registrado"))
+    .catch(err => console.log("Erro SW:", err));
+}
+</script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
@@ -234,10 +241,10 @@
 		background:var(--principal);
 	}
 
-		.menuLateral {
+.menuLateral {
 position: fixed;
 top: 0;
-left: -280px;
+left: -260px;
 width: 260px;
 height: 100%;
 background: white;
@@ -251,13 +258,19 @@ flex-direction:column;
 
 .menuLateral button{
 width:100%;
-margin-bottom:8px;
-padding:12px;
+margin-bottom:10px;
+padding:14px;
 text-align:left;
 font-size:14px;
 border-radius:8px;
 background:#f4f1ef;
 color:var(--texto);
+transition:0.2s;
+}
+
+.menuLateral button:hover{
+background:var(--apoio);
+transform:translateX(3px);
 }
 
 .menuLateral button:hover{
@@ -267,7 +280,29 @@ background:var(--apoio);
 .menuLateral.aberto {
     left: 0; /* Mostra o menu */
 }
+.menuHeader{
+text-align:center;
+margin-bottom:25px;
+padding-bottom:15px;
+border-bottom:1px solid #eee;
+}
 
+.menuClock{
+font-size:22px;
+font-weight:bold;
+color:var(--principal);
+}
+
+#dataHoje{
+font-size:12px;
+margin-top:4px;
+color:#777;
+}
+
+#clima{
+margin-top:8px;
+font-size:14px;
+}
 /* Overlay para fechar ao clicar fora */
 .menu-overlay {
     display: none;
@@ -311,16 +346,21 @@ background:var(--apoio);
 </header>
 
 	<div id="menuLateral" class="menuLateral">
-		<div id="infoTopoMenu" style="margin-bottom:15px;">
+		<div class="menuHeader">
+<div class="menuClock">
+<div id="horaAgora"></div>
 <div id="dataHoje"></div>
-<div id="horaAgora" style="font-size:18px;font-weight:bold"></div>
+</div>
+
+<div id="clima"></div>
+
 </div>
 	<div id="clima"></div>
-    <button onclick="abrirMotoristas();toggleMenu()">Motoristas</button>
-	<button onclick="abrirObras();toggleMenu()">Obras</button>
-	<button onclick="abrirCentralWhats();toggleMenu()">Central Whats</button>
-	<button onclick="abrirHistorico();toggleMenu()">Histórico</button>
-	<button onclick="abrirMapaVisitante();toggleMenu()">Mapa Obras</button>
+    <button onclick="abrirMotoristas();toggleMenu()">👷 Motoristas</button>
+<button onclick="abrirObras();toggleMenu()">🏗️ Obras</button>
+<button onclick="abrirCentralWhats();toggleMenu()">📲 Central Whats</button>
+<button onclick="abrirHistorico();toggleMenu()">📊 Histórico</button>
+<button onclick="abrirMapaVisitante();toggleMenu()">🗺️ Mapa Obras</button>
   	<button id="btnEditarObras" onclick="ativarEdicaoObras();toggleMenu()">✏️ Editar Obras</button>
     <button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
 </div>
@@ -417,6 +457,7 @@ oninput="filtrarObras()"
 
 </div>
 </div>
+	
 <script>
 let modoEditarObras = false;
 let obraArrastando = null;
@@ -436,6 +477,13 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let modo = "visitante";
+	function apenasAdmin(){
+    if(modo !== "admin"){
+        alert("Apenas administradores podem alterar o sistema.");
+        return false;
+    }
+    return true;
+}
 let motoristas = [];
 let obras = [];
 let agendaMunk = {};
@@ -883,11 +931,13 @@ quadro.appendChild(col);
 }	
 	
 function soltar(e,destino){
+	if(modo !== "admin") return;
 	if(modoEditarObras) return;
 
     e.preventDefault();   // 🔴 ESSENCIAL
 
-	const index = parseInt(e.dataTransfer.getData("text/plain"));
+	const index = Number(e.dataTransfer.getData("text/plain"));
+if(isNaN(index)) return;
     const m = motoristas[index];
 
     if(!m) return;
@@ -941,6 +991,7 @@ function abrirMotoristas(){
 }
 
 function novoMotorista(){
+	if(!apenasAdmin()) return;
     const n = prompt("Nome:");
     const p = prompt("Placa:");
     const t = prompt("Telefone:");
@@ -963,16 +1014,20 @@ function novoMotorista(){
 }
 
 function editarMotorista(i){
+	if(!apenasAdmin()) return;
     const n = prompt("Nome:", motoristas[i].nome); const p = prompt("Placa:", motoristas[i].placa);
     if(n && p){ motoristas[i].nome = n.toUpperCase(); motoristas[i].placa = p.toUpperCase(); salvar(); abrirMotoristas(); }
 }
 
 function editarTelefone(i){
+	if(!apenasAdmin()) return;
     const t=prompt("Telefone:",motoristas[i].telefone||"");
     if(t!==null){ motoristas[i].telefone=t; salvar(); abrirMotoristas(); }
 }
 
-function excluirMotorista(i){ if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
+function excluirMotorista(i){
+	if(!apenasAdmin()) return;
+	if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
 
 window.addEventListener("DOMContentLoaded", () => {
 
@@ -985,7 +1040,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 });
 	function editarTipo(i){
-
+	if(!apenasAdmin()) return;
     const tipos = [
         "TRUCK",
         "BITRUCK",
@@ -1064,6 +1119,7 @@ function filtrarMotoristas(){
 }	
 
 function editarNomeObra(i){
+	if(!apenasAdmin()) return;
     const novoNome = prompt("Novo nome para a obra:", obras[i].nome);
     if(novoNome){
         const nomeAntigo = obras[i].nome;
@@ -1127,6 +1183,7 @@ function filtrarObras(){
 
 }
 function vincularDestino(i){
+	if(!apenasAdmin()) return;
 
     const origem = obras[i].nome;
 
@@ -1263,7 +1320,7 @@ function abrirMapaVisitante(){
 }	
 
 function novaObra(){
-
+	if(!apenasAdmin()) return;
     const n = prompt("Nome da obra:");
 
     if(!n) return;
@@ -1284,9 +1341,12 @@ function novaObra(){
     salvar();
     abrirObras();
 }
-	function toggleOculta(i){ obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
-	function excluirObra(i){ if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
+	function toggleOculta(i){
+		if(!apenasAdmin()) return;obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
+	function excluirObra(i){
+		if(!apenasAdmin()) return;if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
 	function moverObra(nome,direcao){
+		if(!apenasAdmin()) return;
 
 	const index = obras.findIndex(o=>o.nome === nome);
 	
