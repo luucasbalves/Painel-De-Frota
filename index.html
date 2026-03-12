@@ -264,6 +264,7 @@
 </header>
 
 	<div id="menuLateral" class="menuLateral">
+	<div id="clima"></div>
     <button onclick="abrirMotoristas()">Motoristas</button>
     <button onclick="abrirObras()">Obras</button>
     <button onclick="abrirCentralWhats()">Central Whats</button>
@@ -271,7 +272,6 @@
     <button onclick="abrirMapaVisitante()">Mapa Obras</button>
     <button id="btnEditarObras" onclick="ativarEdicaoObras()">✏️ Editar Obras</button>
     <button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
-    <button class="btn-danger" onclick="location.reload()">Sair</button>
 </div>
     <div id="dashboard" class="dashboard"></div>
 
@@ -406,9 +406,13 @@ function iniciar(){
     el("app").style.display="block";
     el("badge-modo").innerText="MODO: "+modo.toUpperCase();
     if(modo!=="admin"){
-        ["btnMotoristas","btnObras","btnWhats"].forEach(id=>el(id).style.display="none");
-        el("pipa-txt").readOnly = true;
-    }
+    ["btnMotoristas","btnObras","btnWhats"].forEach(id=>{
+        const b = el(id);
+        if(b) b.style.display="none";
+    });
+
+    el("pipa-txt").readOnly = true;
+}
     carregarRealtime();
     buscarClima();
 	setInterval(snapshotDiario, 60000);
@@ -500,6 +504,13 @@ function ativarEdicaoObras(){
 
     el("btnEditarObras").style.display = "none";
     el("btnSalvarOrdem").style.display = "inline-block";
+
+    render();
+
+}
+	function toggleColuna(nome){
+
+    colunasAbertas[nome] = !colunasAbertas[nome];
 
     render();
 
@@ -742,114 +753,6 @@ function criarColunaRetratil(nome, lista, titulo) {
     });
 
     el("quadro").appendChild(col);
-}
-
-col.ondragover = e=>e.preventDefault();
-    const aberto = colunasAbertas[nome] || false;
-   	col.innerHTML=`
-	<h3 onclick="toggleColuna('${nome}')">
-	<div>${titulo} (${lista.length})</div>
-	<div style="display:flex;gap:5px">
-	${modoEditarObras ? `
-	<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',-1)">⬆</button>
-	<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',1)">⬇</button>
-	` : ""}
-	<span>${aberto?"▲":"▼"}</span>
-	</div>
-	</h3>
-
-	<div class="corpo-coluna ${aberto ? "aberto" : ""}"></div>
-`;
-    const corpo = col.querySelector(".corpo-coluna");
-	corpo.ondrop = (e)=> soltar(e,nome);
-corpo.ondragover = (e)=> e.preventDefault();
-	lista.forEach((m,i)=>{
-
-    const card = document.createElement("div");
-	card.className = "caminhao";
-	card.draggable = (modo === "admin");
-
-	card.ondragstart = (e)=>{
-    e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
-};
-
-	card.innerHTML = `
-	<strong>${m.nome}</strong><br>
-	<small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
-	${m.obsOficina ? `<br><small>${m.obsOficina}</small>` : ""}
-	`;
-
-    corpo.appendChild(card);
-
-});
-	corpo.addEventListener("dragover",(e)=>{
-    e.preventDefault();
-});
-	const headerColuna = col.querySelector("h3");
-	headerColuna.addEventListener("dragover",(e)=>{
-    e.preventDefault();
-});
-
-headerColuna.addEventListener("drop",(e)=>{
-    e.preventDefault();
-
-    if(!obraArrastando || obraArrastando === nome) return;
-
-    const origemIndex = obras.findIndex(o=>o.nome === obraArrastando);
-	const destinoIndex = obras.findIndex(o=>o.nome === nome);
-
-    if(origemIndex === -1 || destinoIndex === -1) return;
-
-    const movida = obras.splice(origemIndex,1)[0];
-    obras.splice(destinoIndex,0,movida);
-
-    obras.forEach((o,i)=>o.ordem=i);
-
-    salvar();
-    render();
-});
-
-col.addEventListener("dragover",(e)=>{
-    if(!modoEditarObras) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-});
-
-if(modoEditarObras){
-    const indicador = document.createElement("div");
-    indicador.className = "drop-indicator";
-
-    indicador.addEventListener("dragover",(e)=>{
-        e.preventDefault();
-        indicador.classList.add("ativo");
-    });
-
-    indicador.addEventListener("dragleave",()=>{
-        indicador.classList.remove("ativo");
-    });
-
-    indicador.addEventListener("drop",(e)=>{
-        e.preventDefault();
-        indicador.classList.remove("ativo");
-
-        if(!obraArrastando) return;
-
-        const origemIndex = obras.findIndex(o=>o.nome === obraArrastando);
-		const destinoIndex = obras.findIndex(o=>o.nome === nome);
-
-        const movida = obras.splice(origemIndex,1)[0];
-        obras.splice(destinoIndex,0,movida);
-
-        obras.forEach((o,i)=>o.ordem=i);
-
-        salvar();
-        render();
-    });
-
-    el("quadro").appendChild(indicador);
-}
-
-el("quadro").appendChild(col);
 }
 	
 function soltar(e,destino){
@@ -1501,12 +1404,10 @@ function toggleMenu() {
     }
     overlay.classList.toggle("ativo");
 }
-function toggleMenu() {
-    const menu = document.getElementById("menuLateral");
-    if(menu) menu.classList.toggle("aberto");
-}
 function fecharModal(){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }
-el("pipa-txt").onchange = salvar;
+document.addEventListener("DOMContentLoaded",()=>{
+    el("pipa-txt").onchange = salvar;
+});
 
 </script>
 </body>
