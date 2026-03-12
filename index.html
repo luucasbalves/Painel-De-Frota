@@ -215,10 +215,20 @@
     transition: 0.3s;
     padding: 20px;
     box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+	flex-direction:column;
+    gap:5px;
 }
 
 .menuLateral.aberto {
     left: 0; /* Mostra o menu */
+}
+		.menuLateral button{
+    width:100%;
+    margin-bottom:8px;
+    padding:10px;
+    text-align:left;
+    font-size:14px;
+    border-radius:8px;
 }
 
 /* Overlay para fechar ao clicar fora */
@@ -265,11 +275,11 @@
 
 	<div id="menuLateral" class="menuLateral">
 	<div id="clima"></div>
-    <button onclick="abrirMotoristas()">Motoristas</button>
-    <button onclick="abrirObras()">Obras</button>
-    <button onclick="abrirCentralWhats()">Central Whats</button>
-    <button onclick="abrirHistorico()">Histórico</button>
-    <button onclick="abrirMapaVisitante()">Mapa Obras</button>
+    <button onclick="abrirMotoristas();toggleMenu()">Motoristas</button>
+	<button onclick="abrirObras();toggleMenu()">Obras</button>
+	<button onclick="abrirCentralWhats();toggleMenu()">Central Whats</button>
+	<button onclick="abrirHistorico();toggleMenu()">Histórico</button>
+	<button onclick="abrirMapaVisitante();toggleMenu()">Mapa Obras</button>
     <button id="btnEditarObras" onclick="ativarEdicaoObras()">✏️ Editar Obras</button>
     <button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
 </div>
@@ -502,46 +512,71 @@ function ativarEdicaoObras(){
 
     modoEditarObras = true;
 
+    colunasAbertas = {}; // fecha todas
+
     el("btnEditarObras").style.display = "none";
     el("btnSalvarOrdem").style.display = "inline-block";
 
     render();
-
 }
 	function toggleColuna(nome){
 
+    if(modoEditarObras) return;
+
     colunasAbertas[nome] = !colunasAbertas[nome];
-
     render();
+}
 
+	function renderDashboard(){
+
+    const ofi = motoristas.filter(m=>m.status==="oficina").length;
+
+    const livres = motoristas.filter(m=>{
+        if(m.status==="oficina") return false;
+        const obra = m.obra || "SEM PROGRAMAÇÃO";
+        if(obra==="SEM PROGRAMAÇÃO") return true;
+        const o = obras.find(x=>x.nome===obra);
+        return o && o.oculta;
+    }).length;
+
+    const obrasAtivas = obras.filter(o=>!o.oculta).length;
+
+    el("dashboard").innerHTML = `
+
+    <div class="cardStat" onclick="alert('Total de motoristas cadastrados')">
+        <h3>${motoristas.length}</h3>
+        <span>FROTA TOTAL</span>
+    </div>
+
+    <div class="cardStat" onclick="alert('Caminhões em manutenção')">
+        <h3>${ofi}</h3>
+        <span>OFICINA</span>
+    </div>
+
+    <div class="cardStat" onclick="alert('Caminhões sem programação')">
+        <h3>${livres}</h3>
+        <span>LIVRES</span>
+    </div>
+
+    <div class="cardStat">
+        <h3>${obrasAtivas}</h3>
+        <span>OBRAS ATIVAS</span>
+    </div>
+    `;
 }
 	
 function render(){
-
+	renderDashboard();
+	renderMunk();   
     const busca = (el("busca")?.value || "").toLowerCase();
     const buscando = busca.length > 0;
     const quadro = el("quadro");
 
     quadro.innerHTML="";
-
-    renderDashboard();
-    renderMunk();
-
-    // FILTRO
-    const filtrados = motoristas.filter(m => {
-
-        if(!busca) return true;
-
-        const nome = (m.nome || "").toLowerCase();
-        const placa = (m.placa || "").toLowerCase();
-        const obra = (m.obra || "").toLowerCase();
-
-        return (
-            nome.includes(busca) ||
-            placa.includes(busca) ||
-            obra.includes(busca)
-        );
-    });
+	const filtrados = motoristas.filter(m =>
+    (m.nome || "").toLowerCase().includes(busca) ||
+    (m.placa || "").toLowerCase().includes(busca)
+);
 
     // OFICINA
     const listaOficina = filtrados.filter(m => m.status === "oficina");
@@ -658,52 +693,8 @@ function contarTipos(lista){
     return {trucks,bitrucks,carretas};
 
 }
-	function renderDashboard(){
-
-    const ofi = motoristas.filter(m=>m.status==="oficina").length;
-
-    const livres = motoristas.filter(m=>{
-
-        if(m.status==="oficina") return false;
-
-        const obra = m.obra || "SEM PROGRAMAÇÃO";
-
-        if(obra==="SEM PROGRAMAÇÃO") return true;
-
-        const o = obras.find(x=>x.nome===obra);
-
-        return o && o.oculta;
-
-    }).length;
-
-    const obrasAtivas = obras.filter(o=>!o.oculta).length;
-
-    el("dashboard").innerHTML = `
-
-    <div class="cardStat">
-        <h3>${motoristas.length}</h3>
-        <span>FROTA TOTAL</span>
-    </div>
-
-    <div class="cardStat">
-        <h3>${ofi}</h3>
-        <span>OFICINA</span>
-    </div>
-
-    <div class="cardStat">
-        <h3>${livres}</h3>
-        <span>LIVRES</span>
-    </div>
-
-    <div class="cardStat">
-        <h3>${obrasAtivas}</h3>
-        <span>OBRAS ATIVAS</span>
-    </div>
-
-    `;
-
-}
 function criarColunaRetratil(nome, lista, titulo) {
+	const quadro = el("quadro");
     if (!titulo) titulo = nome;
     if (!lista) lista = [];
     const col = document.createElement("div");
@@ -734,32 +725,64 @@ function criarColunaRetratil(nome, lista, titulo) {
     const corpo = col.querySelector(".corpo-coluna");
     
     // Eventos de Drop de Motoristas
-    corpo.ondragover = (e) => e.preventDefault();
-    corpo.ondrop = (e) => soltar(e, nome);
+   	// Drop de motoristas
+corpo.ondragover = (e) => e.preventDefault();
+corpo.ondrop = (e) => soltar(e, nome);
 
-    lista.forEach((m) => {
-        const i = motoristas.indexOf(m);
-        const card = document.createElement("div");
-        card.className = "caminhao";
-        card.draggable = (modo === "admin");
-        card.ondragstart = (e) => { e.dataTransfer.setData("text/plain", i); };
+// Drop de obras (reordenar)
+col.ondragover = (e) => e.preventDefault();
 
-        card.innerHTML = `
-            <strong>${m.nome}</strong><br>
-            <small>${m.placa} ${m.tipo ? "• " + m.tipo : ""}</small>
-            ${m.obsOficina ? `<br><small style="color:red">⚠️ ${m.obsOficina}</small>` : ""}
-        `;
-        corpo.appendChild(card);
-    });
+col.ondrop = () => {
 
-    el("quadro").appendChild(col);
-}
+    if(!obraArrastando || obraArrastando === nome) return;
+
+    const origem = obras.findIndex(o=>o.nome===obraArrastando);
+    const destino = obras.findIndex(o=>o.nome===nome);
+
+    if(origem === -1 || destino === -1) return;
+
+    const temp = obras[origem];
+    obras.splice(origem,1);
+    obras.splice(destino,0,temp);
+
+    obras.forEach((o,i)=>o.ordem=i);
+
+    salvar();
+    render();
+};
+
+// criação dos cards
+lista.forEach((m) => {
+
+    const i = motoristas.indexOf(m);
+
+    const card = document.createElement("div");
+    card.className = "caminhao";
+    card.draggable = (modo === "admin" && !modoEditarObras);
+
+    card.ondragstart = (e)=>{
+        e.dataTransfer.setData("text/plain", i);
+    };
+
+    card.innerHTML = `
+        <strong>${m.nome}</strong><br>
+        <small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
+        ${m.obsOficina ? `<br><small style="color:red">⚠️ ${m.obsOficina}</small>` : ""}
+    `;
+
+    corpo.appendChild(card);
+
+});
+
+quadro.appendChild(col);
+}	
 	
 function soltar(e,destino){
+	if(modoEditarObras) return;
 
     e.preventDefault();   // 🔴 ESSENCIAL
 
-    const index = e.dataTransfer.getData("text/plain");
+	const index = parseInt(e.dataTransfer.getData("text/plain"));
     const m = motoristas[index];
 
     if(!m) return;
