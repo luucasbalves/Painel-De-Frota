@@ -108,6 +108,13 @@
     	.lateral-fixa { width: 100%; position: static; }
     	.cardStat { min-width: 80px; }
 	.dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+		.corpo-coluna {
+        grid-template-columns: 1fr; /* Um card por linha no celular */
+    }
+    .modalBox {
+        width: 90%; /* Modal ocupa quase toda a largura */
+        padding: 15px;
+    }
 	#login{
 		position:fixed;
 		inset:0;
@@ -141,6 +148,10 @@ cursor:grab;
 
 .coluna[draggable="true"]:active{
 cursor:grabbing;
+}
+		.caminhao[draggable="false"] {
+    cursor: default;
+    opacity: 0.8;
 }
     </style>
 </head>
@@ -588,14 +599,23 @@ if(!modoEditarObras){
 
 }
     lista.forEach(m=>{
-        const card=document.createElement("div");
-        card.className="caminhao";
-        card.draggable=(modo==="admin");
-        card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
-        card.ondragstart = (e)=>{
-    e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
-    e.dataTransfer.effectAllowed = "move";
-};
+    const card=document.createElement("div");
+    card.className="caminhao";
+    // Só permite arrastar o motorista se o modo de edição de obras estiver DESLIGADO
+    card.draggable = (modo === "admin" && !modoEditarObras); 
+    
+    card.innerHTML=`<strong>${m.nome}</strong><br><small>${m.placa}</small>${m.obsOficina ? `<br><span style="color:red">⚙️ ${m.obsOficina}</span>`:""}`;
+    
+    card.ondragstart = (e)=>{
+        if(modoEditarObras) {
+            e.preventDefault();
+            return false;
+        }
+        e.dataTransfer.setData("text/plain", motoristas.indexOf(m));
+        e.dataTransfer.effectAllowed = "move";
+    };
+    corpo.appendChild(card);
+});
         corpo.appendChild(card);
     });
     el("quadro").appendChild(col);
