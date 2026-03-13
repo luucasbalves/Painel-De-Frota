@@ -578,6 +578,9 @@ function carregarRealtime(){
    			 }
 			});
             obras = dados.obras || [];
+			obras.forEach(o=>{
+    if(!o.destinos) o.destinos = [];
+});
             agendaMunk = dados.agendaMunk || {};
             historico = dados.historico || [];
             el("pipa-txt").value = dados.fluxoPipa || "";
@@ -1365,71 +1368,6 @@ render();
 abrirObras();
 
 }
-    let destino = null;
-
-    // tentar número
-    const numero = parseInt(busca.trim());
-    if(!isNaN(numero) && obras[numero-1] && numero-1 !== i){
-        destino = obras[numero-1].nome;
-    }
-
-    // tentar texto
-    if(!destino){
-
-        const termo = busca
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g,"");
-
-        const encontrados = obras.filter((o,idx)=>{
-
-            if(idx === i) return false;
-
-            const nome = o.nome
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g,"");
-
-            return nome.includes(termo);
-
-        });
-
-        if(encontrados.length === 1){
-
-            destino = encontrados[0].nome;
-
-        }else if(encontrados.length > 1){
-
-            let lista2 = "Escolha o destino:\n\n";
-
-            encontrados.forEach((o,n)=>{
-                lista2 += `${n+1} - ${o.nome}\n`;
-            });
-
-            const escolha = prompt(lista2);
-
-            const index = parseInt(escolha)-1;
-
-            if(!isNaN(index) && encontrados[index]){
-                destino = encontrados[index].nome;
-            }
-
-        }
-
-    }
-
-    if(!destino){
-        alert("Obra não encontrada.");
-        return;
-    }
-
-    obras[i].destino = destino;
-
-    salvar();
-    render();
-    abrirObras();
-
-}
 
    
 function abrirObras(){
@@ -1486,14 +1424,15 @@ function novaObra(){
     const tipo = tipoEscolha === "2" ? "entrega" : "interna";
 
     obras.push({
-	nome: n.toUpperCase(),
-	tipo: tipo,
-	destinos: [],
-	oculta: false,
-	ordem: obras.length
+    nome: n.toUpperCase(),
+    tipo: tipo,
+    destinos: [],
+    oculta: false,
+    ordem: obras.length
+});
 
-    salvar();
-    abrirObras();
+salvar();
+abrirObras();
 }
 	function toggleOculta(i){
 		if(!apenasAdmin()) return;obras[i].oculta = !obras[i].oculta; salvar(); abrirObras(); }
