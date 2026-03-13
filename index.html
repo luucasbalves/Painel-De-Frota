@@ -501,7 +501,6 @@ let modo = "visitante";
     return true;
 }
 let motoristas = [];
-let obras = [];
 let agendaMunk = {};
 let colunasAbertas = { 
     "OFICINA": false, 
@@ -646,10 +645,10 @@ else if(destinoMover==="PEDREIRA"){
 m.obra="PEDREIRA";
 }
 else{
-m.obra=destinoMover;
+m.obra = destinoMover.split("_")[0];
 }
 
-registrarHistorico(m, origem, destinoMover);
+registrarHistorico(m, origem, m.obra);
 
 });
 
@@ -856,62 +855,61 @@ function render(){
         criarColunaRetratil("PEDREIRA", pedreira);
     }
 
-    // OBRAS INTERNAS
-    const internas = obras
-    .filter(o => !o.oculta && (o.tipo !== "entrega"));
+    // OBRAS EM GERAL
+const internas = obras
+.filter(o => !o.oculta && o.tipo === "interna");
 
-    internas
-    .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
-    .forEach(o => {
+internas
+.sort((a,b)=> (a.ordem||0) - (b.ordem||0))
+.forEach(o => {
 
-        const lista = filtrados.filter(m =>
-            (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-        );
+    const lista = filtrados.filter(m =>
+        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+    );
 
-        if(buscando && lista.length === 0) return;
+    if(buscando && lista.length === 0) return;
 
-        const titulo = o.destino
-    	? `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`
-    	: o.nome.toUpperCase();
+    const titulo = o.nome.toUpperCase() + " - INTERNO";
 
-		criarColunaRetratil(o.nome, lista, titulo);
+    criarColunaRetratil(o.nome + "_INTERNO", lista, titulo);
 
-    });
+});
+	// VÍNCULOS ENTRE OBRAS
+const vinculadas = obras
+.filter(o => !o.oculta && o.destino && obras.some(x=>x.nome===o.destino));
+
+vinculadas.forEach(o => {
+
+    const lista = filtrados.filter(m =>
+        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+    );
+
+    if(buscando && lista.length === 0) return;
+
+    const titulo = `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`;
+
+    criarColunaRetratil(o.nome + "_VINCULO", lista, titulo);
+
+});
+
 
     // ENTREGAS
     const entregas = obras
-    .filter(o => !o.oculta && o.tipo === "entrega");
+.filter(o => !o.oculta && o.tipo === "entrega");
 
-    if(entregas.length > 0){
+entregas.forEach(o => {
 
-        const separador = document.createElement("div");
-        separador.style.padding = "10px";
-        separador.style.fontWeight = "bold";
-        separador.style.textAlign = "center";
-		separador.style.background = "var(--apoio)";
-		separador.style.marginTop = "10px";
-		separador.style.borderRadius = "6px";
-        separador.innerText = "🚛 ENTREGAS DE MATERIAL";
+    const lista = filtrados.filter(m =>
+        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+    );
 
-        quadro.appendChild(separador);
+    if(buscando && lista.length === 0) return;
 
-        entregas.forEach(o => {
+    const titulo = o.nome.toUpperCase() + " - ENTREGAS";
 
-            const lista = filtrados.filter(m =>
-                (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-            );
+    criarColunaRetratil(o.nome + "_ENTREGA", lista, titulo);
 
-            if(buscando && lista.length === 0) return;
-
-            const titulo = o.destino
-			? `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`
-			: o.nome.toUpperCase();
-
-			criarColunaRetratil(o.nome, lista, titulo);
-
-        });
-
-    }
+});
 
 }
 function contarTipos(lista){
@@ -1079,10 +1077,10 @@ if(isNaN(index)) return;
             m.obra="PEDREIRA";
         }
         else{
-            m.obra=destino;
+            m.obra = destino.split("_")[0];
         }
 
-        registrarHistorico(m, origem, destino);
+        registrarHistorico(m, origem, m.obra);
     }
 
     salvar();
@@ -1443,11 +1441,12 @@ function novaObra(){
     const tipo = tipoEscolha === "2" ? "entrega" : "interna";
 
     obras.push({
-        nome: n.toUpperCase(),
-        tipo: tipo,
-        oculta: false,
-        ordem: obras.length
-    });
+	nome: n.toUpperCase(),
+	tipo: tipo,
+	destino: "",
+	oculta: false,
+	ordem: obras.length
+	});
 
     salvar();
     abrirObras();
