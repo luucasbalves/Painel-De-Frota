@@ -744,16 +744,14 @@ if(!m.tipo) m.tipo="";
 });
             obras = dados.obras || [];
 			obras.forEach(o=>{
-
-if(!o.tipos){
-if(o.tipo){
-o.tipos=[o.tipo];
-}else{
-o.tipos=["interna"];
-}
-}
-
-});
+                if(!o.tipos){
+                    if(o.tipo){
+                        o.tipos=[o.tipo];
+                    }else{
+                        o.tipos=[]; // ⬅️ ALTERAÇÃO AQUI: Deixe vazio. Não force "interna"!
+                    }
+                }
+            });
             agendaMunk = dados.agendaMunk || {};
             historico = dados.historico || [];
             el("pipa-txt").value = dados.fluxoPipa || "";
@@ -773,38 +771,27 @@ o.tipos=["interna"];
     });
 
 }
-function abrirConfigObra(i){
 
-if(!apenasAdmin()) return;
-
-obraConfigIndex = i;
-
-const obra = obras[i];
-
-el("modalConfigObra").style.display="flex";
-
-el("tipoInterna").checked = (obra.tipos || []).includes("interna");
-el("tipoEntrega").checked = (obra.tipos || []).includes("entrega");
-
-renderVinculosAtuais();
-
-el("buscaVinculo").value="";
-renderBuscaVinculos();
-
-}
 function salvarConfigObra() {
     if (!apenasAdmin()) return;
 
     const obra = obras[obraConfigIndex];
     const novosTipos = [];
+    
+    // 🛡️ PROTEÇÃO: Garante que tiposAtuais seja um array, mesmo se vier quebrado do Firebase
+    const tiposAtuais = obra.tipos || []; 
 
     // 1. Captura o que está marcado nos Switches
     if (document.getElementById("tipoInterna").checked) novosTipos.push("interna");
     if (document.getElementById("tipoEntrega").checked) novosTipos.push("entrega");
 
-    // 2. LÓGICA DE LIMPEZA (Mover para Sem Programação ao desligar)
-    // Se "interna" estava ativa e agora foi desligada...
-    if (obra.tipos.includes("interna") && !novosTipos.includes("interna")) {
+    // 🛡️ TRUQUE PRO FIREBASE: Se tudo estiver OFF, enviamos "vazio" para o Firebase não apagar o array
+    if (novosTipos.length === 0) {
+        novosTipos.push("vazio");
+    }
+
+    // 2. LÓGICA DE LIMPEZA (Move para Sem Programação)
+    if (tiposAtuais.includes("interna") && !novosTipos.includes("interna")) {
         motoristas.forEach(m => {
             if (m.obra === obra.nome && m.card === "INTERNO") {
                 m.obra = "SEM PROGRAMAÇÃO";
@@ -813,8 +800,7 @@ function salvarConfigObra() {
         });
     }
 
-    // Se "entrega" estava ativa e agora foi desligada...
-    if (obra.tipos.includes("entrega") && !novosTipos.includes("entrega")) {
+    if (tiposAtuais.includes("entrega") && !novosTipos.includes("entrega")) {
         motoristas.forEach(m => {
             if (m.obra === obra.nome && m.card === "ENTREGA") {
                 m.obra = "SEM PROGRAMAÇÃO";
@@ -829,7 +815,7 @@ function salvarConfigObra() {
     salvar();
     render();
     fecharModal();
-}	
+}
 function renderVinculosAtuais(){
 
 const obra = obras[obraConfigIndex];
