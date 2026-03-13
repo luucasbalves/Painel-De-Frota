@@ -1387,15 +1387,12 @@ function filtrarObras(){
 
         div.innerHTML = `
         <div>
-            <strong>${o.nome}</strong>
-            ${o.lat ? "<br><small>📍 Localização cadastrada</small>" : ""}
-        </div>
+   			 <strong>${o.nome}</strong>
+		</div>
 
         <div class="acoes">
 
             <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
-
-            <button class="btn-mini" onclick="editarLocalizacao(${i})">📍</button>
 			<button class="btn-mini" onclick="vincularDestino(${i})">🔗</button>
 			<button class="btn-mini" onclick="editarTipoObra(${i})">🚧</button>
 
@@ -1496,9 +1493,8 @@ function renderMapaObras(){
     lista.innerHTML = "";
 
     const filtradas = obras.filter(o =>
-        !o.oculta &&
-        (o.nome || "").toLowerCase().includes(busca)
-    );
+    (o.nome || "").toLowerCase().includes(busca)
+	);
 
     if(filtradas.length === 0){
         lista.innerHTML = "<p>Nenhuma obra encontrada</p>";
