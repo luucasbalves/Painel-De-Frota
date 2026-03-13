@@ -1219,7 +1219,7 @@ internas
     m.status !== "oficina"
     );
 
-    if(buscando && lista.length === 0) return;
+    if(lista.length === 0 && !buscando) return;
 
     criarColunaRetratil(
         o.nome + "_INTERNO",
@@ -1241,7 +1241,7 @@ obras
     m.status !== "oficina"
 );		
 
-        if(buscando && lista.length === 0) return;
+        if(lista.length === 0 && !buscando) return;
 
         const titulo = `${o.nome.toUpperCase()} → ${dest.toUpperCase()}`;
 
@@ -1281,7 +1281,7 @@ if(entregas.length > 0){
     m.status !== "oficina");
 			
 
-        if(buscando && lista.length === 0) return;
+        if(lista.length === 0 && !buscando) return;
 
         criarColunaRetratil(
             o.nome + "_ENTREGA",
