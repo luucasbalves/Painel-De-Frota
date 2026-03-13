@@ -1396,49 +1396,49 @@ function filtrarObras(){
 
 }
 function vincularDestino(i){
-	
+
 if(!apenasAdmin()) return;
 
-const origem = obras[i];	
+const origem = obras[i];
+
 if(origem.oculta){
 alert("Obra oculta não pode criar vínculos.");
 return;
 }
 
-let lista = "Escolha obra destino:\n\n";
+const nomeDigitado = prompt("Digite o nome da obra destino:");
 
-obras.forEach((o,idx)=>{
-if(idx !== i){
-lista += `${idx+1} - ${o.nome}\n`;
-}
-});
+if(!nomeDigitado) return;
 
-const escolha = prompt(lista);
+const busca = nomeDigitado.toLowerCase();
 
-const index = parseInt(escolha)-1;
+// procura obra pelo nome
+const destino = obras.find((o,idx)=>
+idx !== i &&
+(o.nome || "").toLowerCase().includes(busca)
+);
 
-if(isNaN(index) || !obras[index] || index===i){
-alert("Obra inválida");
+if(!destino){
+alert("Nenhuma obra encontrada com esse nome.");
 return;
 }
-
-const destino = obras[index].nome;
 
 if(!origem.destinos){
 origem.destinos=[];
 }
 
-const pos = origem.destinos.indexOf(destino);
+const pos = origem.destinos.indexOf(destino.nome);
 
-// SE JÁ EXISTE → REMOVE
+// se já existe → remove
 if(pos !== -1){
 
 origem.destinos.splice(pos,1);
+alert("Vínculo removido com: " + destino.nome);
 
 }else{
 
-// ADICIONA NOVO
-origem.destinos.push(destino);
+origem.destinos.push(destino.nome);
+alert("Vínculo criado com: " + destino.nome);
 
 }
 
