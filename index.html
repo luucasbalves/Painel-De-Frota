@@ -168,11 +168,12 @@ margin-left:auto;
 }
 .itemMoverMotorista{
 display:grid;
-grid-template-columns: 25px 1fr;
+grid-template-columns:20px 1fr;
 align-items:center;
-gap:10px;
+gap:8px;
 padding:10px 0;
 border-bottom:1px solid var(--apoio);
+cursor:pointer;
 }
 .itemMoverMotorista input[type="checkbox"]{
 width:16px;
@@ -725,7 +726,7 @@ const div = document.createElement("div");
 div.className="itemMoverMotorista";
 
 div.innerHTML = `
-<input type="checkbox" ${marcado?"checked":""} onclick="toggleSelecionado(${i})">
+<input type="checkbox" ${marcado?"checked":""}>
 
 <div>
 <strong>${m.nome}</strong><br>
@@ -734,8 +735,9 @@ div.innerHTML = `
 </div>
 `;
 
-lista.appendChild(div);
+div.onclick = () => toggleSelecionado(i);
 
+lista.appendChild(div);
 });
 
 }
