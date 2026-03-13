@@ -167,7 +167,8 @@ gap:5px;
 margin-left:auto;
 }
 .itemMoverMotorista{
-display:flex;
+display:grid;
+grid-template-columns: 25px 1fr;
 align-items:center;
 gap:10px;
 padding:10px 0;
@@ -176,12 +177,8 @@ border-bottom:1px solid var(--apoio);
 
 .itemMoverMotorista input{
 margin:0;
-flex:0 0 auto;
 }
 
-.itemMoverMotorista div{
-flex:1;
-}
         .acoes{ display:flex; gap:5px; }
 
         /* BOTÕES */
@@ -726,7 +723,6 @@ const div = document.createElement("div");
 div.className="itemMoverMotorista";
 
 div.innerHTML = `
-<label style="display:flex;gap:10px;align-items:center;width:100%">
 <input type="checkbox" ${marcado?"checked":""} onclick="toggleSelecionado(${i})">
 
 <div>
@@ -734,7 +730,6 @@ div.innerHTML = `
 <small>${m.placa}</small><br>
 <small style="color:#777">${m.obra || "SEM PROGRAMAÇÃO"}</small>
 </div>
-</label>
 `;
 
 lista.appendChild(div);
