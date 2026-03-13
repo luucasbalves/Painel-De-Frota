@@ -831,6 +831,19 @@ if(pos !== -1){
 
 obra.destinos.splice(pos,1);
 
+/* MOVE MOTORISTAS DO VINCULO */
+
+motoristas.forEach(m=>{
+
+if(m.obra === obra.nome && m.card === "VINCULO_" + dest){
+
+m.obra = "SEM PROGRAMAÇÃO";
+m.card = "INTERNO";
+
+}
+
+});
+
 renderVinculosAtuais();
 
 }
@@ -887,6 +900,15 @@ const obra = obras[obraConfigIndex];
 const tinhaInterna = (obra.tipos || []).includes("interna");
 const tinhaEntrega = (obra.tipos || []).includes("entrega");
 
+const obra = obras[obraConfigIndex];
+
+/* GUARDAR ESTADO ANTIGO */
+
+const tinhaInterna = (obra.tipos || []).includes("interna");
+const tinhaEntrega = (obra.tipos || []).includes("entrega");
+
+/* REDEFINIR TIPOS */
+
 obra.tipos = [];
 
 if(el("tipoInterna").checked)
@@ -905,7 +927,6 @@ if(tinhaInterna && !obra.tipos.includes("interna")){
 motoristas.forEach(m=>{
 if(m.obra === obra.nome && m.card === "INTERNO"){
 m.obra = "SEM PROGRAMAÇÃO";
-m.card = "INTERNO";
 }
 });
 
@@ -919,7 +940,6 @@ if(tinhaEntrega && !obra.tipos.includes("entrega")){
 motoristas.forEach(m=>{
 if(m.obra === obra.nome && m.card === "ENTREGA"){
 m.obra = "SEM PROGRAMAÇÃO";
-m.card = "INTERNO";
 }
 });
 
@@ -939,8 +959,6 @@ render();
 
 fecharModal();
 abrirObras();
-
-}
 function abrirMoverMotoristas(obra){
 
 destinoMover = obra;
@@ -1213,11 +1231,11 @@ internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
 .forEach(o => {
 
-    const lista = filtrados.filter(m =>
-    m.obra === o.nome &&
-    (m.card || "INTERNO") === "INTERNO" &&
-    m.status !== "oficina"
-    );
+   const lista = filtrados.filter(m =>
+m.obra === o.nome &&
+m.card === "INTERNO" &&
+m.status !== "oficina"
+);
 
     if(lista.length === 0 && !buscando) return;
 
