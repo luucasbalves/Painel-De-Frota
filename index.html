@@ -701,6 +701,7 @@ function iniciar(){
 }
 async function buscarClima(){
     const climaEl = el("clima");
+	if(!climaEl) return;
     try{
         const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=-27.09&longitude=-48.91&current_weather=true");
         const data = await res.json();
@@ -1107,7 +1108,8 @@ CARRETA: ${tiposLivres.carretas}
 function render(){
 	renderDashboard();
 	renderMunk();   
-    const busca = (el("busca")?.value || "").toLowerCase();
+    const buscaInput = el("busca");
+const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
     const buscando = busca.length > 0;
     const quadro = el("quadro");
 
