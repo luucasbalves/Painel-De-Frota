@@ -876,21 +876,28 @@ internas
     );
 
 });
-	// VÍNCULOS ENTRE OBRAS
-const vinculadas = obras
-.filter(o => !o.oculta && o.destino && obras.some(x=>x.nome===o.destino));
+// VÍNCULOS ENTRE OBRAS
+obras
+.filter(o => !o.oculta && o.destinos && o.destinos.length > 0)
+.forEach(o => {
 
-vinculadas.forEach(o => {
+    o.destinos.forEach(dest => {
 
-    const lista = filtrados.filter(m =>
-        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-    );
+        const lista = filtrados.filter(m =>
+            (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+        );
 
-    if(buscando && lista.length === 0) return;
+        if(buscando && lista.length === 0) return;
 
-    const titulo = `${o.nome.toUpperCase()} → ${o.destino.toUpperCase()}`;
+        const titulo = `${o.nome.toUpperCase()} → ${dest.toUpperCase()}`;
 
-    criarColunaRetratil(o.nome + "_VINCULO", lista, titulo);
+        criarColunaRetratil(
+            o.nome + "_VINCULO_" + dest,
+            lista,
+            titulo
+        );
+
+    });
 
 });
 
@@ -1311,34 +1318,53 @@ function filtrarObras(){
 
 }
 function vincularDestino(i){
-	if(!apenasAdmin()) return;
 
-    const origem = obras[i].nome;
+if(!apenasAdmin()) return;
 
-    let lista = "Escolha a obra destino para:\n\n";
-    lista += origem + "\n\n";
+const origem = obras[i];
 
-    obras.forEach((o,idx)=>{
-        if(idx !== i){
-            lista += `${idx+1} - ${o.nome}\n`;
-        }
-    });
+let lista = "Escolha obra destino:\n\n";
 
-    lista += "\nDigite o NÚMERO ou parte do NOME.";
-    lista += "\nDigite 0 para REMOVER vínculo.";
+obras.forEach((o,idx)=>{
+if(idx !== i){
+lista += `${idx+1} - ${o.nome}\n`;
+}
+});
 
-    const busca = prompt(lista);
+const escolha = prompt(lista);
 
-    if(busca === null) return;
+const index = parseInt(escolha)-1;
 
-    if(busca === "0"){
-        obras[i].destino = "";
-        salvar();
-        render();
-        abrirObras();
-        return;
-    }
+if(isNaN(index) || !obras[index] || index===i){
+alert("Obra inválida");
+return;
+}
 
+const destino = obras[index].nome;
+
+if(!origem.destinos){
+origem.destinos=[];
+}
+
+const pos = origem.destinos.indexOf(destino);
+
+// SE JÁ EXISTE → REMOVE
+if(pos !== -1){
+
+origem.destinos.splice(pos,1);
+
+}else{
+
+// ADICIONA NOVO
+origem.destinos.push(destino);
+
+}
+
+salvar();
+render();
+abrirObras();
+
+}
     let destino = null;
 
     // tentar número
@@ -1462,10 +1488,9 @@ function novaObra(){
     obras.push({
 	nome: n.toUpperCase(),
 	tipo: tipo,
-	destino: "",
+	destinos: [],
 	oculta: false,
 	ordem: obras.length
-	});
 
     salvar();
     abrirObras();
@@ -1691,19 +1716,30 @@ function abrirHistorico(){
 }
 	function editarTipoObra(i){
 
-    const escolha = prompt(
-        "Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL"
-    );
+if(!apenasAdmin()) return;
 
-    if(escolha === "2"){
-        obras[i].tipo = "entrega";
-    }else{
-        obras[i].tipo = "interna";
-    }
+const escolha = prompt(
+"Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL\n\nDigite novamente o mesmo tipo para remover."
+);
 
-    salvar();
-    render();
-    abrirObras();
+if(!escolha) return;
+
+const novoTipo = escolha === "2" ? "entrega" : "interna";
+
+// SE JÁ TEM ESSE TIPO → REMOVE
+if(obras[i].tipo === novoTipo){
+
+    obras[i].tipo = "";
+
+}else{
+
+    obras[i].tipo = novoTipo;
+
+}
+
+salvar();
+render();
+abrirObras();
 
 }
 function toggleMenu() {
