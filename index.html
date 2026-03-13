@@ -413,6 +413,24 @@ font-size:14px;
         <div id="calendario-munk" class="calendario"></div>
     </div>
 </div>
+<div id="modalMapa" class="modal">
+<div class="modalBox">
+
+<h2>📍 Localização das Obras</h2>
+
+<input 
+id="buscaMapa"
+placeholder="🔍 Buscar obra..."
+style="width:100%;padding:8px;margin:10px 0"
+oninput="renderMapaObras()"
+>
+
+<div id="listaMapaObras" class="listaScroll"></div>
+
+<button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button>
+
+</div>
+</div>	
 <div id="modalMoverMotoristas" class="modal">
 <div class="modalBox">
 
@@ -1462,34 +1480,88 @@ function abrirObras(){
 }
 function abrirMapaVisitante(){
 
-    const ativas = obras.filter(o => !o.oculta && o.lat && o.lng);
+    el("modalMapa").style.display = "flex";
 
-    if(ativas.length === 0){
-        alert("Nenhuma obra com localização cadastrada");
+    el("buscaMapa").value = "";
+
+    renderMapaObras();
+
+}
+function renderMapaObras(){
+
+    const busca = (el("buscaMapa").value || "").toLowerCase();
+
+    const lista = el("listaMapaObras");
+
+    lista.innerHTML = "";
+
+    const filtradas = obras.filter(o =>
+        !o.oculta &&
+        (o.nome || "").toLowerCase().includes(busca)
+    );
+
+    if(filtradas.length === 0){
+        lista.innerHTML = "<p>Nenhuma obra encontrada</p>";
         return;
     }
 
-    let lista = "Escolha a obra:\n\n";
+    filtradas.forEach(o => {
 
-    ativas.forEach((o,i)=>{
-        lista += `${i+1} - ${o.nome}\n`;
+        const div = document.createElement("div");
+        div.className = "itemLista";
+
+        div.innerHTML = `
+        <div>
+            <strong>${o.nome}</strong>
+            ${o.maps ? "<br><small>📍 Localização cadastrada</small>" : ""}
+        </div>
+
+        <div class="acoes">
+
+        ${
+            o.maps
+            ? `<button class="btn-mini btn-success" onclick="window.open('${o.maps}','_blank')">ABRIR</button>`
+            : ""
+        }
+
+        ${
+            modo === "admin"
+            ? `<button class="btn-mini" onclick="editarLinkMapa('${o.nome}')">✏️</button>`
+            : ""
+        }
+
+        </div>
+        `;
+
+        lista.appendChild(div);
+
     });
 
-    const escolha = prompt(lista);
+}
+function editarLinkMapa(nome){
 
-    const obra = ativas[escolha-1];
+    if(!apenasAdmin()) return;
 
-    if(obra){
+    const obra = obras.find(o => o.nome === nome);
 
-        window.open(
-            `https://maps.google.com/?q=${obra.lat},${obra.lng}`,
-            "_blank"
-        );
+    if(!obra) return;
+
+    const link = prompt(
+        "Cole o link do Google Maps:",
+        obra.maps || ""
+    );
+
+    if(link !== null){
+
+        obra.maps = link;
+
+        salvar();
+
+        renderMapaObras();
 
     }
 
 }	
-
 function novaObra(){
 	if(!apenasAdmin()) return;
     const n = prompt("Nome da obra:");
@@ -1714,23 +1786,6 @@ function abrirHistorico(){
         div.appendChild(item);
 
     });
-
-}
-	function editarLocalizacao(i){
-	if(!apenasAdmin()) return;	
-
-    const lat = prompt("Latitude da obra:", obras[i].lat || "");
-    const lng = prompt("Longitude da obra:", obras[i].lng || "");
-
-    if(lat && lng){
-
-        obras[i].lat = lat;
-        obras[i].lng = lng;
-
-        salvar();
-        abrirObras();
-
-    }
 
 }
 function editarTipoObra(i){
