@@ -147,7 +147,15 @@ if ("serviceWorker" in navigator) {
 
         /* MODAIS */
         .modal{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1000; }
-        .modalBox{ background:white; padding:25px; border-radius:12px; width:480px; border-top:8px solid var(--principal); }
+        .modalBox{
+background:white;
+padding:20px;
+border-radius:12px;
+width:480px;
+border-top:8px solid var(--principal);
+max-height:80vh;
+overflow-y:auto;
+}
         .whatsappBox{ width:550px; }
        	.itemLista{
 display:flex;
@@ -341,6 +349,56 @@ font-size:14px;
     z-index: 4999;
 }
 .menu-overlay.ativo { display: block; }
+	.toggleLinha{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:10px 0;
+border-bottom:1px solid var(--apoio);
+font-weight:bold;
+}
+
+.switch{
+position:relative;
+width:46px;
+height:24px;
+}
+
+.switch input{
+display:none;
+}
+
+.slider{
+position:absolute;
+cursor:pointer;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:#ccc;
+transition:.3s;
+border-radius:24px;
+}
+
+.slider:before{
+position:absolute;
+content:"";
+height:18px;
+width:18px;
+left:3px;
+bottom:3px;
+background:white;
+transition:.3s;
+border-radius:50%;
+}
+
+input:checked + .slider{
+background:var(--success);
+}
+
+input:checked + .slider:before{
+transform:translateX(22px);
+}	
    	 </style>
 	</head>
 <body>
@@ -495,21 +553,25 @@ oninput="filtrarObras()"
 
 <h3>TIPO DA OBRA</h3>
 
-<label>
+<div class="toggleLinha">
+<span>OBRA INTERNA</span>
+<label class="switch">
 <input type="checkbox" id="tipoInterna">
- OBRA INTERNA
+<span class="slider"></span>
 </label>
+</div>
 
-<br>
-
-<label>
+<div class="toggleLinha">
+<span>ENTREGA DE MATERIAL</span>
+<label class="switch">
 <input type="checkbox" id="tipoEntrega">
- ENTREGA DE MATERIAL
+<span class="slider"></span>
 </label>
+</div>
 
 <hr style="margin:15px 0">
 
-<h3>VÍNCULOS</h3>
+<h3 style="margin-top:15px">VÍNCULOS</h3>
 
 <input 
 id="buscaVinculo"
@@ -1105,7 +1167,7 @@ function render(){
 
     // OBRAS EM GERAL
 const internas = obras
-.filter(o => !o.oculta && (o.tipos || []).includes("interna"));
+.filter(o => !o.oculta && ((o.tipos || []).includes("interna") || (o.destinos && o.destinos.length)));
 
 internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
