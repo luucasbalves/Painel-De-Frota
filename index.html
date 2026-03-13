@@ -385,11 +385,11 @@ font-size:14px;
 <div id="clima"></div>
 
 </div>
-    <button onclick="abrirMotoristas();toggleMenu()">👷 Motoristas</button>
-<button onclick="abrirObras();toggleMenu()">🏗️ Obras</button>
-<button onclick="abrirCentralWhats();toggleMenu()">📲 Central Whats</button>
-<button onclick="abrirHistorico();toggleMenu()">📊 Histórico</button>
-<button onclick="abrirMapaVisitante();toggleMenu()">🗺️ Mapa Obras</button>
+    <button id="btnMotoristas" onclick="abrirMotoristas();toggleMenu()">👷 Motoristas</button>
+<button id="btnObras" onclick="abrirObras();toggleMenu()">🏗️ Obras</button>
+<button id="btnWhats" onclick="abrirCentralWhats();toggleMenu()">📲 Central Whats</button>
+<button id="btnHistorico" onclick="abrirHistorico();toggleMenu()">📊 Histórico</button>
+<button id="btnMapa" onclick="abrirMapaVisitante();toggleMenu()">🗺️ Mapa Obras</button>
   	<button id="btnEditarObras" onclick="ativarEdicaoObras();toggleMenu()">✏️ Editar Obras</button>
     <button id="btnSalvarOrdem" style="display:none" class="btn-success" onclick="finalizarEdicaoObras()">✔️ Concluir</button>
 </div>
@@ -545,24 +545,40 @@ function entrarAdmin(){ if(el("senha").value==="AdminBal"){ modo="admin"; inicia
 function entrarVisitante(){ modo="visitante"; iniciar(); }
 
 function iniciar(){
-	atualizarRelogio();
+
+    atualizarRelogio();
+
     el("login").style.display="none";
     el("app").style.display="block";
-    el("badge-modo").innerText="MODO: "+modo.toUpperCase();
-    if(modo!=="admin"){
-    ["btnMotoristas","btnObras","btnWhats"].forEach(id=>{
-        const b = el(id);
-        if(b) b.style.display="none";
-    });
 
-    el("pipa-txt").readOnly = true;
-}
+    el("badge-modo").innerText = "MODO: " + modo.toUpperCase();
+
+    // VISITANTE
+    if(modo !== "admin"){
+
+        const ocultar = [
+            "btnMotoristas",
+            "btnObras",
+            "btnWhats",
+            "btnEditarObras"
+        ];
+
+        ocultar.forEach(id=>{
+            const b = el(id);
+            if(b) b.style.display = "none";
+        });
+
+        // bloqueia edição do pipa
+        el("pipa-txt").readOnly = true;
+
+    }
+
     carregarRealtime();
     buscarClima();
-	setInterval(snapshotDiario, 60000);
+
+    setInterval(snapshotDiario, 60000);
+
 }
-
-
 async function buscarClima(){
     const climaEl = el("clima");
     try{
@@ -1299,7 +1315,7 @@ function filtrarMotoristas(){
             <small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
         </div>
 
-        <div class="acoes">
+        <div class="acoes" ${modo!=="admin" ? 'style="display:none"' : ""}>
 		<button class="btn-mini" onclick="editarTipo(${i})">🚚</button>
         <button class="btn-mini" onclick="editarMotorista(${i})">✏️</button>
         <button class="btn-mini" onclick="editarTelefone(${i})">📞</button>
@@ -1701,6 +1717,7 @@ function abrirHistorico(){
 
 }
 	function editarLocalizacao(i){
+	if(!apenasAdmin()) return;	
 
     const lat = prompt("Latitude da obra:", obras[i].lat || "");
     const lng = prompt("Longitude da obra:", obras[i].lng || "");
