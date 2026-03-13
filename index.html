@@ -570,6 +570,9 @@ function carregarRealtime(){
 
             motoristas = dados.motoristas || [];
 			motoristas.forEach(m=>{
+			if(!m.card) m.card="INTERNO";
+			});
+			motoristas.forEach(m=>{
    			if(!m.tipo){
         	m.tipo = "";
    			 }
@@ -632,20 +635,26 @@ return;
 selecionadosMover.forEach(i=>{
 
 const m = motoristas[i];
-
 const origem = m.obra || "SEM PROGRAMAÇÃO";
 
 m.status="ativo";
 m.obsOficina="";
 
 if(destinoMover==="SEM PROGRAMAÇÃO"){
-m.obra="SEM PROGRAMAÇÃO";
+    m.obra="SEM PROGRAMAÇÃO";
+    m.card="INTERNO";
 }
 else if(destinoMover==="PEDREIRA"){
-m.obra="PEDREIRA";
+    m.obra="PEDREIRA";
+    m.card="INTERNO";
 }
 else{
-m.obra = destinoMover.split("_")[0];
+
+    const partes = destinoMover.split("_");
+
+    m.obra = partes[0];
+    m.card = partes[1] || "INTERNO";
+
 }
 
 registrarHistorico(m, origem, m.obra);
@@ -886,11 +895,10 @@ obras
     o.destinos.forEach(dest => {
 
         const lista = filtrados.filter(m =>
-            m.obra === o.nome &&
-	m.obra === o.nome &&
-(m.card || "").startsWith("VINCULO") &&
-m.status !== "oficina"
-        );
+    m.obra === o.nome &&
+    (m.card || "") === "VINCULO_" + dest &&
+    m.status !== "oficina"
+);		
 
         if(buscando && lista.length === 0) return;
 
@@ -929,7 +937,8 @@ if(entregas.length > 0){
         const lista = filtrados.filter(m =>
            m.obra === o.nome &&
 (m.card || "INTERNO") === "ENTREGA" &&
-m.status !== "oficina"
+m.status !== "oficina");
+			
 
         if(buscando && lista.length === 0) return;
 
@@ -1103,11 +1112,13 @@ if(isNaN(index)) return;
         m.obsOficina="";
 
         if(destino==="SEM PROGRAMAÇÃO"){
-            m.obra="SEM PROGRAMAÇÃO";
-        }
-        else if(destino==="PEDREIRA"){
-            m.obra="PEDREIRA";
-        }
+    m.obra="SEM PROGRAMAÇÃO";
+    m.card="INTERNO";
+}
+else if(destino==="PEDREIRA"){
+    m.obra="PEDREIRA";
+    m.card="INTERNO";
+}
         else{
             const partes = destino.split("_");
 
@@ -1115,7 +1126,7 @@ m.obra = partes[0];
 m.card = partes[1] || "INTERNO";
         }
 
-        registrarHistorico(m, origem, m.obra);
+        registrarHistorico(m, origem, m.obra + " (" + (m.card||"INTERNO") + ")");
     }
 
     salvar();
