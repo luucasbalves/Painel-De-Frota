@@ -385,7 +385,20 @@ font-size:14px;
         <div id="calendario-munk" class="calendario"></div>
     </div>
 </div>
+<div id="modalMoverMotoristas" class="modal">
+<div class="modalBox">
 
+<h2>Selecionar Motoristas</h2>
+
+<input id="buscaMoverMotorista" placeholder="🔍 Buscar motorista..." style="width:100%;padding:8px;margin:10px 0" oninput="renderMoverMotoristas()">
+
+<div id="listaMoverMotoristas" class="listaScroll"></div>
+
+<button class="btn-success btn-full" onclick="confirmarMoverMotoristas()">Mover Selecionados</button>
+<button class="btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
+
+</div>
+</div>
 <div id="modalMotoristas" class="modal">
 <div class="modalBox">
 
@@ -460,6 +473,8 @@ oninput="filtrarObras()"
 </div>
 	
 <script>
+let destinoMover = null;
+let selecionadosMover = new Set();
 let modoEditarObras = false;
 let obraArrastando = null;
 let historico = [];
@@ -587,7 +602,101 @@ function carregarRealtime(){
     });
 
 }
+function abrirMoverMotoristas(obra){
 
+destinoMover = obra;
+selecionadosMover.clear();
+
+el("modalMoverMotoristas").style.display = "flex";
+
+el("buscaMoverMotorista").value = "";
+
+renderMoverMotoristas();
+
+}
+function toggleSelecionado(i){
+
+if(selecionadosMover.has(i)){
+selecionadosMover.delete(i);
+}else{
+selecionadosMover.add(i);
+}
+
+}
+function confirmarMoverMotoristas(){
+
+if(selecionadosMover.size === 0){
+alert("Selecione ao menos um motorista.");
+return;
+}
+
+selecionadosMover.forEach(i=>{
+
+const m = motoristas[i];
+
+const origem = m.obra || "SEM PROGRAMAÇÃO";
+
+m.status="ativo";
+m.obsOficina="";
+
+if(destinoMover==="SEM PROGRAMAÇÃO"){
+m.obra="SEM PROGRAMAÇÃO";
+}
+else if(destinoMover==="PEDREIRA"){
+m.obra="PEDREIRA";
+}
+else{
+m.obra=destinoMover;
+}
+
+registrarHistorico(m, origem, destinoMover);
+
+});
+
+salvar();
+render();
+fecharModal();
+
+}	
+function renderMoverMotoristas(){
+
+const busca = (el("buscaMoverMotorista").value || "").toLowerCase();
+
+const lista = el("listaMoverMotoristas");
+
+lista.innerHTML = "";
+
+motoristas
+.filter(m =>
+(m.nome || "").toLowerCase().includes(busca) ||
+(m.placa || "").toLowerCase().includes(busca)
+)
+.forEach((m)=>{
+
+const i = motoristas.indexOf(m);
+
+const marcado = selecionadosMover.has(i);
+
+const div = document.createElement("div");
+
+div.className="itemLista";
+
+div.innerHTML=`
+<label style="display:flex;align-items:center;gap:10px;width:100%;cursor:pointer">
+<input type="checkbox" ${marcado?"checked":""} onchange="toggleSelecionado(${i})">
+<div>
+<strong>${m.nome}</strong><br>
+<small>${m.placa}</small><br>
+<small style="color:#777">${m.obra || "SEM PROGRAMAÇÃO"}</small>
+</div>
+</label>
+`;
+
+lista.appendChild(div);
+
+});
+
+}	
 function finalizarEdicaoObras(){
 
     modoEditarObras = false;
@@ -842,9 +951,10 @@ function criarColunaRetratil(nome, lista, titulo) {
             <div>${titulo} (${lista.length})</div>
             <div style="display:flex;gap:5px">
                 ${modoEditarObras ? `
-                    <button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',-1)">⬆</button>
-                    <button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',1)">⬇</button>
-                ` : ""}
+			<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',-1)">⬆</button>
+			<button class="btn-mini" onclick="event.stopPropagation(); moverObra('${nome}',1)">⬇</button>
+			<button class="btn-mini" onclick="event.stopPropagation(); abrirMoverMotoristas('${nome}')">👷</button>
+			` : ""}
                 <span>${aberto ? "▲" : "▼"}</span>
             </div>
         </h3>
