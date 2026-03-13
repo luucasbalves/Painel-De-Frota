@@ -894,6 +894,13 @@ obra.tipos.push("entrega");
 
 if(!obra.destinos) obra.destinos = [];
 
+if(obra.tipos.length === 0 && (!obra.destinos || obra.destinos.length === 0)){
+    obra.oculta = true;
+}
+if(obra.tipos.length > 0){
+    obra.oculta = false;
+}	
+
 salvar();
 render();
 
@@ -1167,7 +1174,7 @@ function render(){
 
     // OBRAS EM GERAL
 const internas = obras
-.filter(o => !o.oculta && ((o.tipos || []).includes("interna") || (o.destinos && o.destinos.length)));
+.filter(o => !o.oculta && (o.tipos || []).includes("interna"));
 
 internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
