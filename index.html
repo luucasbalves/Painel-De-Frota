@@ -570,13 +570,9 @@ function carregarRealtime(){
 
             motoristas = dados.motoristas || [];
 			motoristas.forEach(m=>{
-			if(!m.card) m.card="INTERNO";
-			});
-			motoristas.forEach(m=>{
-   			if(!m.tipo){
-        	m.tipo = "";
-   			 }
-			});
+if(!m.card) m.card="INTERNO";
+if(!m.tipo) m.tipo="";
+});
             obras = dados.obras || [];
 			obras.forEach(o=>{
 
@@ -954,7 +950,7 @@ if(entregas.length > 0){
         criarColunaRetratil(
             o.nome + "_ENTREGA",
             lista,
-            o.nome.toUpperCase()
+            o.nome.toUpperCase() + " (ENTREGA)"
         );
 
     });
@@ -1063,12 +1059,12 @@ lista.forEach((m) => {
 	const indicador = document.createElement("div");
 indicador.className="drop-indicator";
 
+quadro.appendChild(col);
 col.before(indicador);
 
 indicador.ondragover = (e)=>e.preventDefault();
 
 indicador.ondrop = ()=>{
-
 if(!obraArrastando) return;
 
 const origem = obras.findIndex(o=>o.nome===obraArrastando);
@@ -1086,7 +1082,7 @@ salvar();
 render();
 };
 
-quadro.appendChild(col);
+
 }	
 	
 function soltar(e,destino){
