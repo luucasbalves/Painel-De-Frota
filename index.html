@@ -935,9 +935,9 @@ if(entregas.length > 0){
     entregas.forEach(o => {
 
         const lista = filtrados.filter(m =>
-           m.obra === o.nome &&
-(m.card || "INTERNO") === "ENTREGA" &&
-m.status !== "oficina");
+    m.obra === o.nome &&
+    (m.card === "ENTREGA") &&
+    m.status !== "oficina");
 			
 
         if(buscando && lista.length === 0) return;
