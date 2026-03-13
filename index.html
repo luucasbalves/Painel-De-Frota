@@ -748,7 +748,7 @@ if(!m.tipo) m.tipo="";
                     if(o.tipo){
                         o.tipos=[o.tipo];
                     }else{
-                        o.tipos=[]; // ⬅️ ALTERAÇÃO AQUI: Deixe vazio. Não force "interna"!
+                        o.tipos=["interna"]; // ⬅️ VOLTE PARA "interna" AQUI!
                     }
                 }
             });
@@ -771,7 +771,68 @@ if(!m.tipo) m.tipo="";
     });
 
 }
+function abrirConfigObra(i){
+    if(!apenasAdmin()) return;
 
+    obraConfigIndex = i;
+    const obra = obras[i];
+    el("modalConfigObra").style.display="flex";
+
+    // Pega os tipos ou um array vazio por segurança
+    const tiposAtuais = obra.tipos || [];
+    
+    el("tipoInterna").checked = tiposAtuais.includes("interna");
+    el("tipoEntrega").checked = tiposAtuais.includes("entrega");
+
+    renderVinculosAtuais();
+    el("buscaVinculo").value="";
+    renderBuscaVinculos();
+}
+
+function salvarConfigObra() {
+    if (!apenasAdmin()) return;
+
+    const obra = obras[obraConfigIndex];
+    const novosTipos = [];
+    
+    // 🛡️ PROTEÇÃO: Garante que tiposAtuais seja um array
+    const tiposAtuais = obra.tipos || []; 
+
+    // 1. Captura o que está marcado nos Switches
+    if (document.getElementById("tipoInterna").checked) novosTipos.push("interna");
+    if (document.getElementById("tipoEntrega").checked) novosTipos.push("entrega");
+
+    // 🛡️ TRUQUE PRO FIREBASE: Se tudo estiver OFF, salva "vazio"
+    if (novosTipos.length === 0) {
+        novosTipos.push("vazio");
+    }
+
+    // 2. LÓGICA DE LIMPEZA (Move para Sem Programação)
+    if (tiposAtuais.includes("interna") && !novosTipos.includes("interna")) {
+        motoristas.forEach(m => {
+            if (m.obra === obra.nome && m.card === "INTERNO") {
+                m.obra = "SEM PROGRAMAÇÃO";
+                m.card = "INTERNO";
+            }
+        });
+    }
+
+    if (tiposAtuais.includes("entrega") && !novosTipos.includes("entrega")) {
+        motoristas.forEach(m => {
+            if (m.obra === obra.nome && m.card === "ENTREGA") {
+                m.obra = "SEM PROGRAMAÇÃO";
+                m.card = "INTERNO";
+            }
+        });
+    }
+
+    // 3. Atualiza os tipos da obra e salva
+    obra.tipos = novosTipos;
+
+    salvar();
+    render();
+    fecharModal();
+}
 function salvarConfigObra() {
     if (!apenasAdmin()) return;
 
@@ -816,6 +877,7 @@ function salvarConfigObra() {
     render();
     fecharModal();
 }
+	
 function renderVinculosAtuais(){
 
 const obra = obras[obraConfigIndex];
