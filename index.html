@@ -632,6 +632,8 @@ selecionadosMover.delete(i);
 selecionadosMover.add(i);
 }
 
+renderMoverMotoristas(); // 🔴 ATUALIZA A LISTA
+
 }
 function confirmarMoverMotoristas(){
 
@@ -691,16 +693,15 @@ motoristas
 (m.nome || "").toLowerCase().includes(busca) ||
 (m.placa || "").toLowerCase().includes(busca)
 )
-.forEach((m)=>{
+.forEach((m,i)=>{
 
-const i = motoristas.indexOf(m);
 const marcado = selecionadosMover.has(i);
 
 const div = document.createElement("div");
 div.className="itemLista";
 
 div.innerHTML = `
-<label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+<label style="display:flex;align-items:center;gap:12px;cursor:pointer;width:100%">
 <input type="checkbox" ${marcado?"checked":""} onclick="toggleSelecionado(${i})">
 <div style="line-height:1.3">
 <strong>${m.nome}</strong><br>
