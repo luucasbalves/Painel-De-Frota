@@ -488,6 +488,45 @@ oninput="filtrarObras()"
 
 </div>
 </div>
+<div id="modalConfigObra" class="modal">
+<div class="modalBox">
+
+<h2>⚙️ Configurar Obra</h2>
+
+<h3>TIPO DA OBRA</h3>
+
+<label>
+<input type="checkbox" id="tipoInterna">
+ OBRA INTERNA
+</label>
+
+<br>
+
+<label>
+<input type="checkbox" id="tipoEntrega">
+ ENTREGA DE MATERIAL
+</label>
+
+<hr style="margin:15px 0">
+
+<h3>VÍNCULOS</h3>
+
+<input 
+id="buscaVinculo"
+placeholder="🔍 Buscar obra..."
+style="width:100%;padding:8px;margin-bottom:10px"
+oninput="renderBuscaVinculos()"
+>
+
+<div id="listaVinculosAtuais" class="listaScroll"></div>
+
+<div id="listaBuscaVinculos" class="listaScroll"></div>
+
+<button class="btn-success btn-full" onclick="salvarConfigObra()">SALVAR</button>
+<button class="btn-secondary btn-full" onclick="fecharModal()">FECHAR</button>
+
+</div>
+</div>	
 <div id="modalWhats" class="modal"><div class="modalBox whatsappBox"><div class="modalHeader"><h2>📲 Central de Envios</h2></div><div id="listaWhats" class="listaScroll"></div><button class="btn-full btn-secondary" onclick="fecharModal()">FECHAR</button></div></div>
 <div id="modalHistorico" class="modal">
 
@@ -519,6 +558,7 @@ oninput="filtrarObras()"
 </div>
 	
 <script>
+let obraConfigIndex = null;
 let destinoMover = null;
 let selecionadosMover = new Set();
 let modoEditarObras = false;
@@ -668,6 +708,135 @@ o.tipos=["interna"];
         render(); // 🔵 importante para atualizar o painel
 
     });
+
+}
+function abrirConfigObra(i){
+
+if(!apenasAdmin()) return;
+
+obraConfigIndex = i;
+
+const obra = obras[i];
+
+el("modalConfigObra").style.display="flex";
+
+el("tipoInterna").checked = (obra.tipos || []).includes("interna");
+el("tipoEntrega").checked = (obra.tipos || []).includes("entrega");
+
+renderVinculosAtuais();
+
+el("buscaVinculo").value="";
+renderBuscaVinculos();
+
+}
+function renderVinculosAtuais(){
+
+const obra = obras[obraConfigIndex];
+
+const lista = el("listaVinculosAtuais");
+
+lista.innerHTML="";
+
+if(!obra.destinos || obra.destinos.length===0){
+lista.innerHTML="<small>Nenhum vínculo</small>";
+return;
+}
+
+obra.destinos.forEach(dest=>{
+
+const div=document.createElement("div");
+div.className="itemLista";
+
+div.innerHTML=`
+<div>${dest}</div>
+<button class="btn-mini btn-danger" onclick="removerVinculo('${dest}')">❌</button>
+`;
+
+lista.appendChild(div);
+
+});
+
+}
+function removerVinculo(dest){
+
+const obra = obras[obraConfigIndex];
+
+if(!obra.destinos) return;
+
+const pos = obra.destinos.indexOf(dest);
+
+if(pos !== -1){
+
+obra.destinos.splice(pos,1);
+
+renderVinculosAtuais();
+
+}
+
+}
+function renderBuscaVinculos(){
+
+const busca = (el("buscaVinculo").value || "").toLowerCase();
+
+const lista = el("listaBuscaVinculos");
+
+lista.innerHTML="";
+
+obras
+.filter((o,i)=>
+(o.nome||"").toLowerCase().includes(busca)
+&& i !== obraConfigIndex
+)
+.forEach(o=>{
+
+const div=document.createElement("div");
+
+div.className="itemLista";
+
+div.innerHTML=`
+<div>${o.nome}</div>
+<button class="btn-mini btn-success" onclick="adicionarVinculo('${o.nome}')">+</button>
+`;
+
+lista.appendChild(div);
+
+});
+
+}
+function adicionarVinculo(nome){
+
+const obra = obras[obraConfigIndex];
+
+if(!obra.destinos) obra.destinos=[];
+
+if(!obra.destinos.includes(nome)){
+
+obra.destinos.push(nome);
+
+renderVinculosAtuais();
+
+}
+
+}
+function salvarConfigObra(){
+
+const obra = obras[obraConfigIndex];
+
+obra.tipos=[];
+
+if(el("tipoInterna").checked)
+obra.tipos.push("interna");
+
+if(el("tipoEntrega").checked)
+obra.tipos.push("entrega");
+
+if(!obra.destinos) obra.destinos = [];
+
+salvar();
+render();
+
+fecharModal();
+abrirObras();
 
 }
 function abrirMoverMotoristas(obra){
@@ -1393,8 +1562,7 @@ function filtrarObras(){
         <div class="acoes">
 
             <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
-			<button class="btn-mini" onclick="vincularDestino(${i})">🔗</button>
-			<button class="btn-mini" onclick="editarTipoObra(${i})">🚧</button>
+			<button class="btn-mini" onclick="abrirConfigObra(${i})">⚙️</button>
 
             <button class="btn-mini" onclick="toggleOculta(${i})">
             ${o.oculta ? "Mostrar" : "Ocultar"}
@@ -1410,59 +1578,6 @@ function filtrarObras(){
     });
 
 }
-function vincularDestino(i){
-
-if(!apenasAdmin()) return;
-
-const origem = obras[i];
-
-if(origem.oculta){
-alert("Obra oculta não pode criar vínculos.");
-return;
-}
-
-const nomeDigitado = prompt("Digite o nome da obra destino:");
-
-if(!nomeDigitado) return;
-
-const busca = nomeDigitado.toLowerCase();
-
-// procura obra pelo nome
-const destino = obras.find((o,idx)=>
-idx !== i &&
-(o.nome || "").toLowerCase().includes(busca)
-);
-
-if(!destino){
-alert("Nenhuma obra encontrada com esse nome.");
-return;
-}
-
-if(!origem.destinos){
-origem.destinos=[];
-}
-
-const pos = origem.destinos.indexOf(destino.nome);
-
-// se já existe → remove
-if(pos !== -1){
-
-origem.destinos.splice(pos,1);
-alert("Vínculo removido com: " + destino.nome);
-
-}else{
-
-origem.destinos.push(destino.nome);
-alert("Vínculo criado com: " + destino.nome);
-
-}
-
-salvar();
-render();
-abrirObras();
-
-}
-
    
 function abrirObras(){
 
@@ -1782,39 +1897,6 @@ function abrirHistorico(){
         div.appendChild(item);
 
     });
-
-}
-function editarTipoObra(i){
-
-if(!apenasAdmin()) return;
-
-const escolha = prompt(
-"Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL"
-);
-
-if(!escolha) return;
-
-const tipo = escolha === "2" ? "entrega" : "interna";
-
-if(!obras[i].tipos) obras[i].tipos=[];
-
-const pos = obras[i].tipos.indexOf(tipo);
-
-if(pos !== -1){
-
-// remove
-obras[i].tipos.splice(pos,1);
-
-}else{
-
-// adiciona
-obras[i].tipos.push(tipo);
-
-}
-
-salvar();
-render();
-abrirObras();
 
 }
 function toggleMenu() {
