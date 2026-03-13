@@ -869,9 +869,11 @@ internas
 
     if(buscando && lista.length === 0) return;
 
-    const titulo = o.nome.toUpperCase() + " - INTERNO";
-
-    criarColunaRetratil(o.nome + "_INTERNO", lista, titulo);
+    criarColunaRetratil(
+        o.nome + "_INTERNO",
+        lista,
+        o.nome.toUpperCase()
+    );
 
 });
 	// VÍNCULOS ENTRE OBRAS
@@ -892,24 +894,41 @@ vinculadas.forEach(o => {
 
 });
 
-
     // ENTREGAS
-    const entregas = obras
+const entregas = obras
 .filter(o => !o.oculta && o.tipo === "entrega");
 
-entregas.forEach(o => {
+if(entregas.length > 0){
 
-    const lista = filtrados.filter(m =>
-        (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
-    );
+    const separador = document.createElement("div");
 
-    if(buscando && lista.length === 0) return;
+    separador.innerText = "🚛 ENTREGAS DE MATERIAL";
+    separador.style.padding = "8px";
+    separador.style.fontWeight = "bold";
+    separador.style.textAlign = "center";
+    separador.style.background = "var(--apoio)";
+    separador.style.borderRadius = "6px";
+    separador.style.margin = "10px 0";
 
-    const titulo = o.nome.toUpperCase() + " - ENTREGAS";
+    quadro.appendChild(separador);
 
-    criarColunaRetratil(o.nome + "_ENTREGA", lista, titulo);
+    entregas.forEach(o => {
 
-});
+        const lista = filtrados.filter(m =>
+            (m.obra || "SEM PROGRAMAÇÃO") === o.nome && m.status !== "oficina"
+        );
+
+        if(buscando && lista.length === 0) return;
+
+        criarColunaRetratil(
+            o.nome + "_ENTREGA",
+            lista,
+            o.nome.toUpperCase()
+        );
+
+    });
+
+}
 
 }
 function contarTipos(lista){
