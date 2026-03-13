@@ -656,9 +656,12 @@ else{
 
     const partes = destinoMover.split("_");
 
-    m.obra = partes[0];
-    m.card = partes[1] || "INTERNO";
+m.obra = partes[0];
 
+if(partes[1] === "VINCULO"){
+    m.card = "VINCULO_" + partes[2];
+}else{
+    m.card = partes[1] || "INTERNO";
 }
 
 registrarHistorico(m, origem, m.obra);
@@ -1140,7 +1143,6 @@ registrarHistorico(m, origem, m.obra + " (" + (m.card||"INTERNO") + ")");
 
     salvar();
     render();
-}
 }	
 
 function abrirMotoristas(){
