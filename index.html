@@ -349,7 +349,7 @@ font-size:14px;
 <div id="horaAgora"></div>
 <div id="dataHoje"></div>
 </div>
-
+	
 <div id="clima"></div>
 
 </div>
@@ -579,7 +579,15 @@ function carregarRealtime(){
 			});
             obras = dados.obras || [];
 			obras.forEach(o=>{
-    if(!o.destinos) o.destinos = [];
+
+if(!o.tipos){
+if(o.tipo){
+o.tipos=[o.tipo];
+}else{
+o.tipos=["interna"];
+}
+}
+
 });
             agendaMunk = dados.agendaMunk || {};
             historico = dados.historico || [];
@@ -590,10 +598,6 @@ function carregarRealtime(){
                 if(o.ordem === undefined){
                     o.ordem = i;
                 }
-
-                if(!o.tipo){
-    			o.tipo = "interna";
-				}
 
             });
 
@@ -866,7 +870,7 @@ function render(){
 
     // OBRAS EM GERAL
 const internas = obras
-.filter(o => !o.oculta && o.tipo === "interna");
+.filter(o => !o.oculta && (o.tipos || []).includes("interna"));
 
 internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
@@ -916,7 +920,7 @@ obras
 
     // ENTREGAS
 const entregas = obras
-.filter(o => !o.oculta && o.tipo === "entrega");
+.filter(o => !o.oculta && (o.tipos || []).includes("entrega"));
 
 if(entregas.length > 0){
 
@@ -1119,19 +1123,25 @@ else if(destino==="PEDREIRA"){
     m.obra="PEDREIRA";
     m.card="INTERNO";
 }
-        else{
-            const partes = destino.split("_");
+else{
+    const partes = destino.split("_");
 
-m.obra = partes[0];
-m.card = partes[1] || "INTERNO";
-        }
+    m.obra = partes[0];
 
-        registrarHistorico(m, origem, m.obra + " (" + (m.card||"INTERNO") + ")");
+    if(partes[1] === "VINCULO"){
+        m.card = "VINCULO_" + partes[2];
+    }else{
+        m.card = partes[1] || "INTERNO";
+    }
+}
+
+registrarHistorico(m, origem, m.obra + " (" + (m.card||"INTERNO") + ")");
     }
 
     salvar();
     render();
 }
+}	
 
 function abrirMotoristas(){
 
@@ -1445,12 +1455,12 @@ function novaObra(){
 
     const tipo = tipoEscolha === "2" ? "entrega" : "interna";
 
-    obras.push({
-    nome: n.toUpperCase(),
-    tipo: tipo,
-    destinos: [],
-    oculta: false,
-    ordem: obras.length
+   obras.push({
+nome: n.toUpperCase(),
+tipos: [tipo],
+destinos: [],
+oculta: false,
+ordem: obras.length
 });
 
 salvar();
@@ -1675,26 +1685,31 @@ function abrirHistorico(){
     }
 
 }
-	function editarTipoObra(i){
+function editarTipoObra(i){
 
 if(!apenasAdmin()) return;
 
 const escolha = prompt(
-"Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL\n\nDigite novamente o mesmo tipo para remover."
+"Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL"
 );
 
 if(!escolha) return;
 
-const novoTipo = escolha === "2" ? "entrega" : "interna";
+const tipo = escolha === "2" ? "entrega" : "interna";
 
-// SE JÁ TEM ESSE TIPO → REMOVE
-if(obras[i].tipo === novoTipo){
+if(!obras[i].tipos) obras[i].tipos=[];
 
-    obras[i].tipo = "";
+const pos = obras[i].tipos.indexOf(tipo);
+
+if(pos !== -1){
+
+// remove
+obras[i].tipos.splice(pos,1);
 
 }else{
 
-    obras[i].tipo = novoTipo;
+// adiciona
+obras[i].tipos.push(tipo);
 
 }
 
