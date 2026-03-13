@@ -718,7 +718,7 @@ async function buscarClima(){
 function salvar(){
     if(modo!=="admin") return;
 
-    db.ref("frotaGlobal").set({
+    db.ref("frotaGlobal").update({
         motoristas: motoristas,
         obras: obras,
         agendaMunk: agendaMunk,
@@ -884,7 +884,10 @@ function salvarConfigObra(){
 
 const obra = obras[obraConfigIndex];
 
-obra.tipos=[];
+const tinhaInterna = (obra.tipos || []).includes("interna");
+const tinhaEntrega = (obra.tipos || []).includes("entrega");
+
+obra.tipos = [];
 
 if(el("tipoInterna").checked)
 obra.tipos.push("interna");
@@ -894,12 +897,42 @@ obra.tipos.push("entrega");
 
 if(!obra.destinos) obra.destinos = [];
 
-if(obra.tipos.length === 0 && (!obra.destinos || obra.destinos.length === 0)){
-    obra.oculta = true;
+
+/* DESLIGOU OBRA INTERNA */
+
+if(tinhaInterna && !obra.tipos.includes("interna")){
+
+motoristas.forEach(m=>{
+if(m.obra === obra.nome && m.card === "INTERNO"){
+m.obra = "SEM PROGRAMAÇÃO";
+m.card = "INTERNO";
 }
-if(obra.tipos.length > 0){
-    obra.oculta = false;
-}	
+});
+
+}
+
+
+/* DESLIGOU ENTREGA */
+
+if(tinhaEntrega && !obra.tipos.includes("entrega")){
+
+motoristas.forEach(m=>{
+if(m.obra === obra.nome && m.card === "ENTREGA"){
+m.obra = "SEM PROGRAMAÇÃO";
+m.card = "INTERNO";
+}
+});
+
+}
+
+
+/* OCULTAR OBRA SE NÃO TIVER NADA */
+
+if(obra.tipos.length === 0 && obra.destinos.length === 0){
+obra.oculta = true;
+}else{
+obra.oculta = false;
+}
 
 salvar();
 render();
