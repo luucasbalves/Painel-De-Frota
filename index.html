@@ -274,10 +274,6 @@ background:var(--apoio);
 transform:translateX(3px);
 }
 
-.menuLateral button:hover{
-background:var(--apoio);
-}
-
 .menuLateral.aberto {
     transform: translateX(0);
 }
@@ -500,9 +496,10 @@ let modo = "visitante";
     }
     return true;
 }
-let motoristas = [];
-let agendaMunk = {};
-let colunasAbertas = { 
+	let motoristas = [];
+	let obras = [];
+	let agendaMunk = {};
+	let colunasAbertas = { 
     "OFICINA": false, 
     "SEM PROGRAMAÇÃO": true,
     "PEDREIRA": true
