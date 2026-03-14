@@ -1095,15 +1095,20 @@ function ativarEdicaoObras(){
     render();
 }
 
-	function renderDashboard(){
+function renderDashboard(){
 
 const ofi = motoristas.filter(m=>m.status==="oficina");
+
+const ausentes = motoristas.filter(m=>m.status==="ausente");
+
 const livres = motoristas.filter(m=>{
-    if(m.status==="oficina") return false;
+    if(m.status === "oficina" || m.status === "ausente") return false;
     return (m.obra || "SEM PROGRAMAÇÃO") === "SEM PROGRAMAÇÃO";
 });
 
+const tiposTotal = contarTipos(motoristas);
 const tiposOficina = contarTipos(ofi);
+const tiposAusentes = contarTipos(ausentes);
 const tiposLivres = contarTipos(livres);
 
 const obrasAtivas = obras.length;
@@ -1119,9 +1124,9 @@ el("dashboard").innerHTML = `
 </div>
 
 <div class="cardFace cardBack">
-TRUCK: ${contarTipos(motoristas).trucks}<br>
-BITRUCK: ${contarTipos(motoristas).bitrucks}<br>
-CARRETA: ${contarTipos(motoristas).carretas}
+TRUCK: ${tiposTotal.trucks}<br>
+BITRUCK: ${tiposTotal.bitrucks}<br>
+CARRETA: ${tiposTotal.carretas}
 </div>
 
 </div>
@@ -1148,6 +1153,23 @@ CARRETA: ${tiposOficina.carretas}
 <div class="cardInner">
 
 <div class="cardFace">
+<h3>${ausentes.length}</h3>
+<span>AUSENTES</span>
+</div>
+
+<div class="cardFace cardBack">
+TRUCK: ${tiposAusentes.trucks}<br>
+BITRUCK: ${tiposAusentes.bitrucks}<br>
+CARRETA: ${tiposAusentes.carretas}
+</div>
+
+</div>
+</div>
+
+<div class="cardStat cardFlip" onclick="this.classList.toggle('virado')">
+<div class="cardInner">
+
+<div class="cardFace">
 <h3>${livres.length}</h3>
 <span>LIVRES</span>
 </div>
@@ -1165,9 +1187,10 @@ CARRETA: ${tiposLivres.carretas}
 <h3>${obrasAtivas}</h3>
 <span>OBRAS ATIVAS</span>
 </div>
+
 `;
+
 }
-	
 function render(){
 	
 	renderDashboard();
@@ -1191,11 +1214,17 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
     if(!buscando || listaOficina.length > 0){
         criarColunaRetratil("OFICINA", listaOficina);
     }
+	// AUSENTE
+const listaAusente = filtrados.filter(m => m.status === "ausente");
+
+if(!buscando || listaAusente.length > 0){
+    criarColunaRetratil("AUSENTE", listaAusente);
+}
 
     // SEM PROGRAMAÇÃO
     const semProgramacao = filtrados.filter(m => {
 
-        if(m.status === "oficina") return false;
+        if(m.status === "oficina" || m.status === "ausente") return false;
 
         const obra = m.obra || "SEM PROGRAMAÇÃO";
 
@@ -1210,7 +1239,7 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
     // PEDREIRA
     const pedreira = filtrados.filter(m => {
 
-        if(m.status === "oficina") return false;
+        if(m.status === "oficina" || m.status === "ausente") return false;
 
         return (m.obra || "") === "PEDREIRA";
 
@@ -1402,6 +1431,7 @@ lista.forEach((m) => {
         <strong>${m.nome}</strong><br>
         <small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
         ${m.obsOficina ? `<br><small style="color:red">⚠️ ${m.obsOficina}</small>` : ""}
+		${m.obsAusente ? `<br><small style="color:#e67e22">🚫 ${m.obsAusente}</small>` : ""}
     `;
 
     corpo.appendChild(card);
@@ -1435,65 +1465,81 @@ render();
 
 
 }	
-	
 function soltar(e,destino){
-	if(modo !== "admin") return;
-	if(modoEditarObras) return;
 
-    e.preventDefault();   // 🔴 ESSENCIAL
+if(modo !== "admin") return;
+if(modoEditarObras) return;
 
-	const index = Number(e.dataTransfer.getData("text/plain"));
+e.preventDefault();
+
+const index = Number(e.dataTransfer.getData("text/plain"));
 if(isNaN(index)) return;
-    const m = motoristas[index];
 
-    if(!m) return;
+const m = motoristas[index];
+if(!m) return;
 
-    const origem = m.obra || "SEM PROGRAMAÇÃO";
+const origem = m.obra || "SEM PROGRAMAÇÃO";
 
-    if(destino==="OFICINA"){
+if(destino==="OFICINA"){
 
-        const mot = prompt("Motivo manutenção:",m.obsOficina||"");
+    const mot = prompt("Motivo manutenção:",m.obsOficina||"");
 
-        if(mot!==null){
-            m.status="oficina";
-            m.obsOficina=mot;
-            m.obra=null;
+    if(mot!==null){
+        m.status="oficina";
+        m.obsOficina=mot;
+        m.obra=null;
 
-            registrarHistorico(m, origem, "OFICINA");
+        registrarHistorico(m, origem, "OFICINA");
+    }
+
+}else if(destino==="AUSENTE"){
+
+    const mot = prompt("Motivo da ausência:", m.obsAusente || "");
+
+    if(mot!==null){
+        m.status="ausente";
+        m.obsAusente=mot;
+        m.obra=null;
+
+        registrarHistorico(m, origem, "AUSENTE");
+    }
+
+}else{
+
+    m.status="ativo";
+    m.obsOficina="";
+    m.obsAusente="";
+
+    if(destino==="SEM PROGRAMAÇÃO"){
+        m.obra="SEM PROGRAMAÇÃO";
+        m.card="INTERNO";
+    }
+    else if(destino==="PEDREIRA"){
+        m.obra="PEDREIRA";
+        m.card="INTERNO";
+    }
+    else{
+
+        const partes = destino.split("_");
+
+        m.obra = partes[0];
+
+        if(partes[1] === "VINCULO"){
+            m.card = "VINCULO_" + partes[2];
+        }else{
+            m.card = partes[1] || "INTERNO";
         }
 
-    }else{
-
-        m.status="ativo";
-        m.obsOficina="";
-
-        if(destino==="SEM PROGRAMAÇÃO"){
-    m.obra="SEM PROGRAMAÇÃO";
-    m.card="INTERNO";
-}
-else if(destino==="PEDREIRA"){
-    m.obra="PEDREIRA";
-    m.card="INTERNO";
-}
-else{
-    const partes = destino.split("_");
-
-    m.obra = partes[0];
-
-    if(partes[1] === "VINCULO"){
-        m.card = "VINCULO_" + partes[2];
-    }else{
-        m.card = partes[1] || "INTERNO";
-    }
-}
-
-registrarHistorico(m, origem, m.obra + " (" + (m.card||"INTERNO") + ")");
     }
 
-    salvar();
-    render();
+    registrarHistorico(m, origem, m.obra);
+
+}
+
+salvar();
+render();
+
 }	
-
 function abrirMotoristas(){
 
     el("modalMotoristas").style.display="flex";
