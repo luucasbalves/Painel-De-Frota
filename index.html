@@ -1082,16 +1082,13 @@ function ativarEdicaoObras(){
 const ofi = motoristas.filter(m=>m.status==="oficina");
 const livres = motoristas.filter(m=>{
     if(m.status==="oficina") return false;
-    const obra = m.obra || "SEM PROGRAMAÇÃO";
-    if(obra==="SEM PROGRAMAÇÃO") return true;
-    const o = obras.find(x=>x.nome===obra);
-    return o && o.oculta;
+    return (m.obra || "SEM PROGRAMAÇÃO") === "SEM PROGRAMAÇÃO";
 });
 
 const tiposOficina = contarTipos(ofi);
 const tiposLivres = contarTipos(livres);
 
-const obrasAtivas = obras.filter(o=>!o.oculta).length;
+const obrasAtivas = obras.length;
 
 el("dashboard").innerHTML = `
 
@@ -1186,11 +1183,6 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
 
         if(obra === "SEM PROGRAMAÇÃO")
             return true;
-
-        const obraRelacionada = mapaObras[obra];
-
-        return obraRelacionada && obraRelacionada.oculta;
-
     });
 
     if(!buscando || semProgramacao.length > 0){
@@ -1212,7 +1204,7 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
 
     // OBRAS EM GERAL
 const internas = obras
-.filter(o => !o.oculta && (o.tipos || []).includes("interna"));
+.filter(o => (o.tipos || []).includes("interna"));
 
 internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
@@ -1235,7 +1227,7 @@ m.status !== "oficina"
 });
 // VÍNCULOS ENTRE OBRAS
 obras
-.filter(o => !o.oculta && o.destinos && o.destinos.length > 0)
+.filter(o => o.destinos && o.destinos.length > 0)
 .forEach(o => {
 
     o.destinos.forEach(dest => {
@@ -1262,13 +1254,10 @@ obras
 
     // ENTREGAS
 const entregas = obras
-.filter(o => !o.oculta && (o.tipos || []).includes("entrega"));
-
-if(entregas.length > 0){
-
-    const separador = document.createElement("div");
-
-    separador.innerText = "🚛 ENTREGAS DE MATERIAL";
+	.filter(o => (o.tipos || []).includes("entrega"));
+	if(entregas.length > 0){
+	const separador = document.createElement("div");
+	separador.innerText = "🚛 ENTREGAS DE MATERIAL";
     separador.style.padding = "8px";
     separador.style.fontWeight = "bold";
     separador.style.textAlign = "center";
@@ -1673,12 +1662,7 @@ function filtrarObras(){
 
             <button class="btn-mini" onclick="editarNomeObra(${i})">✏️</button>
 			<button class="btn-mini" onclick="abrirConfigObra(${i})">⚙️</button>
-
-            <button class="btn-mini" onclick="toggleOculta(${i})">
-            ${o.oculta ? "Mostrar" : "Ocultar"}
-            </button>
-
-            <button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
+			<button class="btn-mini btn-danger" onclick="excluirObra(${i})">❌</button>
 
         </div>
         `;
@@ -1799,53 +1783,12 @@ function novaObra(){
 nome: n.toUpperCase(),
 tipos: [tipo],
 destinos: [],
-oculta: false,
 ordem: obras.length
 });
 
 salvar();
 abrirObras();
 }
-function toggleOculta(i){
-
-if(!apenasAdmin()) return;
-
-const obra = obras[i];
-
-obra.oculta = !obra.oculta;
-
-/* SE A OBRA FOI OCULTADA */
-
-if(obra.oculta){
-
-/* 1 - REMOVE MOTORISTAS DA OBRA */
-
-motoristas.forEach(m=>{
-
-if(m.obra === obra.nome){
-
-m.obra = "SEM PROGRAMAÇÃO";
-m.card = "INTERNO";
-
-}
-
-});
-
-/* 2 - REMOVE VÍNCULOS */
-
-obra.destinos = [];
-
-/* 3 - DESLIGA TIPOS */
-
-obra.tipos = ["interna"]; 
-
-}
-
-salvar();
-render();
-abrirObras();
-
-}	
 function abrirCentralWhats(){
     const esc = motoristas.filter(m=>m.obra && m.telefone);
     if(esc.length===0){ alert("Ninguém escalado com telefone"); return; }
