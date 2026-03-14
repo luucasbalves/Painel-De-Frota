@@ -621,6 +621,38 @@ oninput="renderBuscaVinculos()"
 
 </div>
 </div>
+<div id="modalNovaObra" class="modal">
+<div class="modalBox">
+
+<h2>Nova Obra</h2>
+
+<input 
+id="novaObraNome"
+placeholder="Digite o nome da obra..."
+style="width:100%;padding:10px;margin-bottom:10px"
+oninput="filtrarObrasExistentes()"
+>
+
+<div id="listaObrasExistentes" class="listaScroll"></div>
+
+<button class="btn-success btn-full" onclick="salvarNovaObra()">CRIAR OBRA</button>
+<button class="btn-secondary btn-full" onclick="fecharModal()">CANCELAR</button>
+
+</div>
+</div>
+<div id="modalTelefone" class="modal">
+<div class="modalBox">
+
+<h2>Editar Telefone</h2>
+
+<input id="inputTelefone" placeholder="Telefone">
+
+<button class="btn-success btn-full" onclick="salvarTelefone()">SALVAR</button>
+<button class="btn-secondary btn-full" onclick="fecharModal()">CANCELAR</button>
+
+</div>
+</div>	
+</div>
 	
 <script>
 let timerBusca;	
@@ -1556,9 +1588,17 @@ function novoMotorista(){
 	if(!apenasAdmin()) return;
     const n = prompt("Nome:");
     const p = prompt("Placa:");
+	if(!p) return;
     const t = prompt("Telefone:");
+	const placaExiste = motoristas.some(m =>
+	m.placa === p.toUpperCase()
+	);
 
-    if(n && p){
+	if(placaExiste){
+	alert("Já existe um caminhão com essa placa.");
+	return;
+	}
+	if(n && p){
         motoristas.push({
             nome: n.toUpperCase(),
             placa: p.toUpperCase(),
@@ -1581,13 +1621,31 @@ function editarMotorista(i){
     const n = prompt("Nome:", motoristas[i].nome); const p = prompt("Placa:", motoristas[i].placa);
     if(n && p){ motoristas[i].nome = n.toUpperCase(); motoristas[i].placa = p.toUpperCase(); salvar(); abrirMotoristas(); }
 }
-
+let motoristaTelefoneIndex = null;	
 function editarTelefone(i){
-	if(!apenasAdmin()) return;
-    const t=prompt("Telefone:",motoristas[i].telefone||"");
-    if(t!==null){ motoristas[i].telefone=t; salvar(); abrirMotoristas(); }
-}
 
+if(!apenasAdmin()) return;
+
+motoristaTelefoneIndex = i;
+
+el("inputTelefone").value = motoristas[i].telefone || "";
+
+el("modalTelefone").style.display="flex";
+
+}
+function salvarTelefone(){
+
+const tel = el("inputTelefone").value;
+
+motoristas[motoristaTelefoneIndex].telefone = tel;
+
+salvar();
+
+fecharModal();
+
+abrirMotoristas();
+
+}
 function excluirMotorista(i){
 	if(!apenasAdmin()) return;
 	if(confirm("Excluir?")){ motoristas.splice(i,1); salvar(); abrirMotoristas(); } }
@@ -1843,28 +1901,71 @@ function editarLinkMapa(nome){
 
 }	
 function novaObra(){
-	if(!apenasAdmin()) return;
-    const n = prompt("Nome da obra:");
 
-    if(!n) return;
+if(!apenasAdmin()) return;
 
-    const tipoEscolha = prompt(
-        "Tipo da obra:\n\n1 - OBRA INTERNA\n2 - ENTREGA DE MATERIAL"
-    );
+el("modalNovaObra").style.display="flex";
 
-    const tipo = tipoEscolha === "2" ? "entrega" : "interna";
+el("novaObraNome").value="";
 
-   obras.push({
-nome: n.toUpperCase(),
-interna: tipo === "interna",
-entrega: tipo === "entrega",
-destinos: [],
-ordem: Date.now()
+filtrarObrasExistentes();
+
+}
+function filtrarObrasExistentes(){
+
+const busca = el("novaObraNome").value.toLowerCase();
+
+const lista = el("listaObrasExistentes");
+
+lista.innerHTML="";
+
+const filtradas = obras.filter(o =>
+o.nome.toLowerCase().includes(busca)
+);
+
+filtradas.forEach(o=>{
+
+const div=document.createElement("div");
+
+div.className="itemLista";
+
+div.innerHTML=`<div>${o.nome}</div>`;
+
+lista.appendChild(div);
+
+});
+
+}
+function salvarNovaObra(){
+
+const nome = el("novaObraNome").value.trim().toUpperCase();
+
+if(!nome){
+alert("Digite o nome da obra");
+return;
+}
+
+const existe = obras.some(o => o.nome === nome);
+
+if(existe){
+alert("Já existe uma obra com esse nome.");
+return;
+}
+
+obras.push({
+nome:nome,
+interna:false,
+entrega:false,
+destinos:[],
+ordem:Date.now()
 });
 
 salvar();
+render();
+fecharModal();
 abrirObras();
-}
+
+}	
 function abrirCentralWhats(){
     const esc = motoristas.filter(m =>
 m.obra &&
