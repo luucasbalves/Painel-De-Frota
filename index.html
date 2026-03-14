@@ -753,7 +753,7 @@ const dados = snapshot.val() || {};
 if(!Array.isArray(dados.motoristas)){
     dados.motoristas = [];
 }
-
+	
 if(!Array.isArray(dados.obras)){
     dados.obras = [];
 }
@@ -1227,7 +1227,6 @@ m.status !== "oficina"
 // VÍNCULOS ENTRE OBRAS
 obras
 .filter(o =>
-o.interna &&
 o.destinos &&
 o.destinos.length > 0
 )
@@ -1278,7 +1277,7 @@ o.destinos.length > 0
     m.status !== "oficina");
 			
 
-        if(lista.length === 0 && !buscando) return;
+       if(buscando && lista.length === 0) return;
 
         criarColunaRetratil(
             o.nome + "_ENTREGA",
