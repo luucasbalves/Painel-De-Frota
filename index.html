@@ -7,13 +7,14 @@
     <link rel="manifest" href="manifest.json">
 	<script>
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js")
+    navigator.serviceWorker.register("./sw.js")
     .then(() => console.log("Service Worker registrado"))
     .catch(err => console.log("Erro SW:", err));
 }
 </script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+	
 
     <style>
         :root{
@@ -620,6 +621,7 @@ oninput="renderBuscaVinculos()"
 </div>
 	
 <script>
+let timerBusca;	
 let obraConfigIndex = null;
 let destinoMover = null;
 let selecionadosMover = new Set();
@@ -638,8 +640,11 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
+const db = firebase.database();
 let modo = "visitante";
 	function apenasAdmin(){
     if(modo !== "admin"){
@@ -924,7 +929,9 @@ function adicionarVinculo(nome){
 
 const obra = obras[obraConfigIndex];
 
-if(!obra.destinos) obra.destinos=[];
+if(!Array.isArray(obra.destinos)){
+obra.destinos=[];
+}
 
 if(!obra.destinos.includes(nome)){
 
@@ -1147,8 +1154,11 @@ CARRETA: ${tiposLivres.carretas}
 }
 	
 function render(){
+	
 	renderDashboard();
-	renderMunk();   
+	renderMunk();
+	const mapaObras = {};
+obras.forEach(o => mapaObras[o.nome] = o);
     const buscaInput = el("busca");
 const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
     const buscando = busca.length > 0;
@@ -1177,7 +1187,7 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
         if(obra === "SEM PROGRAMAÇÃO")
             return true;
 
-        const obraRelacionada = obras.find(o => o.nome === obra);
+        const obraRelacionada = mapaObras[obra];
 
         return obraRelacionada && obraRelacionada.oculta;
 
@@ -1531,7 +1541,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const buscaInput = el("busca");
 
     if(buscaInput){
-        buscaInput.oninput = render;
+        buscaInput.oninput = () => {
+clearTimeout(timerBusca);
+timerBusca = setTimeout(render,200);
+};
         buscaInput.addEventListener("keyup", render);
     }
 
@@ -1793,37 +1806,46 @@ ordem: obras.length
 salvar();
 abrirObras();
 }
-	function toggleOculta(i){
+function toggleOculta(i){
+
 if(!apenasAdmin()) return;
-obras[i].oculta = !obras[i].oculta;
+
+const obra = obras[i];
+
+obra.oculta = !obra.oculta;
+
+/* SE A OBRA FOI OCULTADA */
+
+if(obra.oculta){
+
+/* 1 - REMOVE MOTORISTAS DA OBRA */
+
+motoristas.forEach(m=>{
+
+if(m.obra === obra.nome){
+
+m.obra = "SEM PROGRAMAÇÃO";
+m.card = "INTERNO";
+
+}
+
+});
+
+/* 2 - REMOVE VÍNCULOS */
+
+obra.destinos = [];
+
+/* 3 - DESLIGA TIPOS */
+
+obra.tipos = ["interna"]; 
+
+}
+
 salvar();
 render();
 abrirObras();
-}
-	function excluirObra(i){
-		if(!apenasAdmin()) return;if(confirm("Excluir?")){ obras.splice(i,1); salvar(); abrirObras(); } }
-	function moverObra(nome,direcao){
-		if(!apenasAdmin()) return;
 
-	const index = obras.findIndex(o=>o.nome === nome);
-	
-	if(index === -1) return;
-
-	const novoIndex = index + direcao;
-
-	if(novoIndex < 0 || novoIndex >= obras.length) return;
-
-	const temp = obras[index];
-	obras[index] = obras[novoIndex];
-	obras[novoIndex] = temp;
-
-	obras.forEach((o,i)=>o.ordem=i);
-
-	salvar();
-	render();
-
-	}
-
+}	
 function abrirCentralWhats(){
     const esc = motoristas.filter(m=>m.obra && m.telefone);
     if(esc.length===0){ alert("Ninguém escalado com telefone"); return; }
