@@ -639,7 +639,6 @@ const firebaseConfig = {
   appId: "1:442336919597:web:825f508c16a989bf37f8a4"
 };
 
-firebase.initializeApp(firebaseConfig);
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -808,8 +807,10 @@ function salvarConfigObra() {
 
     // 🛡️ TRUQUE PRO FIREBASE: Se tudo estiver OFF, enviamos "vazio" para o Firebase não apagar o array
     if (novosTipos.length === 0) {
-       novosTipos.push("interna");
-    }
+    obra.tipos = [];
+}else{
+    obra.tipos = novosTipos;
+}
 
     // 2. LÓGICA DE LIMPEZA (Move para Sem Programação)
     if (tiposAtuais.includes("interna") && !novosTipos.includes("interna")) {
@@ -829,11 +830,7 @@ function salvarConfigObra() {
             }
         });
     }
-
-    // 3. Atualiza os tipos da obra e salva
-    obra.tipos = novosTipos;
-
-    salvar();
+	salvar();
     render();
     fecharModal();
 }
@@ -934,11 +931,10 @@ obra.destinos=[];
 }
 
 if(!obra.destinos.includes(nome)){
-
-obra.destinos.push(nome);
-
-renderVinculosAtuais();
-
+    obra.destinos.push(nome);
+    salvar();
+    render();
+    renderVinculosAtuais();
 }
 
 }
@@ -1216,7 +1212,7 @@ m.card === "INTERNO" &&
 m.status !== "oficina"
 );
 
-    if(lista.length === 0 && !buscando) return;
+    if(buscando && lista.length === 0) return;
 
     criarColunaRetratil(
         o.nome + "_INTERNO",
