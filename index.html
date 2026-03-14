@@ -7,9 +7,11 @@
     <link rel="manifest" href="manifest.json">
 	<script>
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js")
-    .then(() => console.log("Service Worker registrado"))
-    .catch(err => console.log("Erro SW:", err));
+window.addEventListener("load", () => {
+navigator.serviceWorker.register("sw.js")
+.then(()=>console.log("Service Worker registrado"))
+.catch(err=>console.log("Erro SW:",err));
+});
 }
 </script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -665,7 +667,15 @@ const el = id => document.getElementById(id);
 
 function mostrarSenha(){ el("senhaBox").style.display="block"; el("escolha").style.display="none"; }
 function voltar(){ el("senhaBox").style.display="none"; el("escolha").style.display="block"; }
-function entrarAdmin(){ if(el("senha").value==="AdminBal"){ modo="admin"; iniciar(); } else alert("Senha incorreta"); }
+const senhaAdmin = "AdminBal";
+function entrarAdmin(){
+if(el("senha").value === senhaAdmin){
+modo="admin";
+iniciar();
+}else{
+alert("Senha incorreta");
+}
+}
 function entrarVisitante(){ modo="visitante"; iniciar(); }
 
 function iniciar(){
@@ -723,6 +733,8 @@ async function buscarClima(){
 function salvar(){
     if(modo!=="admin") return;
 
+	console.log("SALVANDO", motoristas, obras);
+
     db.ref("frotaGlobal").update({
         motoristas: motoristas,
         obras: obras,
@@ -736,39 +748,32 @@ function salvar(){
 function carregarRealtime(){
 
     db.ref("frotaGlobal").on("value", (snapshot) => {
+const dados = snapshot.val() || {};
 
-        const dados = snapshot.val();
+if(!Array.isArray(dados.motoristas)){
+    dados.motoristas = [];
+}
 
+if(!Array.isArray(dados.obras)){
+    dados.obras = [];
+}
         if(dados){
-
-            motoristas = dados.motoristas || [];
+			
+			motoristas = Array.isArray(dados.motoristas) ? dados.motoristas : [];
+obras = Array.isArray(dados.obras) ? dados.obras : [];
 			motoristas.forEach(m=>{
 if(!m.card) m.card="INTERNO";
 if(!m.tipo) m.tipo="";
 });
-            obras = dados.obras || [];
-			obras.forEach(o=>{
-                if(!o.tipos){
-                    if(o.tipo){
-                        o.tipos=[o.tipo];
-                    }else{
-                        o.tipos=["interna"]; // ⬅️ VOLTE PARA "interna" AQUI!
-                    }
-                }
-            });
+			obras.forEach((o,i)=>{
+if(o.interna === undefined) o.interna = false;
+if(o.entrega === undefined) o.entrega = false;
+if(!Array.isArray(o.destinos)) o.destinos = [];
+if(o.ordem === undefined) o.ordem = i;
+});
             agendaMunk = dados.agendaMunk || {};
             historico = dados.historico || [];
-            el("pipa-txt").value = dados.fluxoPipa || "";
-
-            obras.forEach((o,i)=>{
-
-                if(o.ordem === undefined){
-                    o.ordem = i;
-                }
-
-            });
-
-        }
+            el("pipa-txt").value = dados.fluxoPipa || "";}
 
         render(); // 🔵 importante para atualizar o painel
 
@@ -783,10 +788,8 @@ function abrirConfigObra(i){
     el("modalConfigObra").style.display="flex";
 
     // Pega os tipos ou um array vazio por segurança
-    const tiposAtuais = obra.tipos || [];
-    
-    el("tipoInterna").checked = tiposAtuais.includes("interna");
-    el("tipoEntrega").checked = tiposAtuais.includes("entrega");
+    el("tipoInterna").checked = obra.interna || false;
+	el("tipoEntrega").checked = obra.entrega || false;
 
     renderVinculosAtuais();
     el("buscaVinculo").value="";
@@ -798,18 +801,14 @@ if (!apenasAdmin()) return;
 
 const obra = obras[obraConfigIndex];
 
-const tiposAntigos = [...(obra.tipos || [])];
-
-const novosTipos = [];
-
-if (el("tipoInterna").checked) novosTipos.push("interna");
-if (el("tipoEntrega").checked) novosTipos.push("entrega");
-
-obra.tipos = novosTipos;
+const internaAntes = obra.interna || false;
+const entregaAntes = obra.entrega || false;
+obra.interna = el("tipoInterna").checked;
+obra.entrega = el("tipoEntrega").checked;
 
 /* LIMPAR MOTORISTAS SE DESLIGOU */
 
-if(tiposAntigos.includes("interna") && !novosTipos.includes("interna")){
+if(internaAntes && !el("tipoInterna").checked){
 
 motoristas.forEach(m=>{
 if(m.obra === obra.nome && m.card === "INTERNO"){
@@ -820,7 +819,7 @@ m.card = "INTERNO";
 
 }
 
-if(tiposAntigos.includes("entrega") && !novosTipos.includes("entrega")){
+if(entregaAntes && !el("tipoEntrega").checked){
 
 motoristas.forEach(m=>{
 if(m.obra === obra.nome && m.card === "ENTREGA"){
@@ -1204,7 +1203,7 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
 
     // OBRAS EM GERAL
 const internas = obras
-.filter(o => (o.tipos || []).includes("interna"));
+.filter(o => o.interna)
 
 internas
 .sort((a,b)=> (a.ordem||0) - (b.ordem||0))
@@ -1228,7 +1227,7 @@ m.status !== "oficina"
 // VÍNCULOS ENTRE OBRAS
 obras
 .filter(o =>
-(o.tipos || []).includes("interna") &&
+o.interna &&
 o.destinos &&
 o.destinos.length > 0
 )
@@ -1257,8 +1256,8 @@ o.destinos.length > 0
 });
 
     // ENTREGAS
-const entregas = obras
-	.filter(o => (o.tipos || []).includes("entrega"));
+	const entregas = obras.filter(o => o.entrega);
+
 	if(entregas.length > 0){
 	const separador = document.createElement("div");
 	separador.innerText = "🚛 ENTREGAS DE MATERIAL";
@@ -1627,7 +1626,15 @@ function editarNomeObra(i){
     if(novoNome){
         const nomeAntigo = obras[i].nome;
         obras[i].nome = novoNome.toUpperCase();
-        motoristas.forEach(m => { if(m.obra === nomeAntigo) m.obra = obras[i].nome; });
+       motoristas.forEach(m=>{
+if(m.obra === nomeAntigo){
+m.obra = obras[i].nome;
+}
+
+if(m.card && m.card.includes(nomeAntigo)){
+m.card = m.card.replace(nomeAntigo, obras[i].nome);
+}
+});
         salvar();
         render();
         abrirObras();
@@ -1785,16 +1792,21 @@ function novaObra(){
 
    obras.push({
 nome: n.toUpperCase(),
-tipos: [tipo],
+interna: tipo === "interna",
+entrega: tipo === "entrega",
 destinos: [],
-ordem: obras.length
+ordem: Date.now()
 });
 
 salvar();
 abrirObras();
 }
 function abrirCentralWhats(){
-    const esc = motoristas.filter(m=>m.obra && m.telefone);
+    const esc = motoristas.filter(m =>
+m.obra &&
+m.obra !== "SEM PROGRAMAÇÃO" &&
+m.telefone
+);
     if(esc.length===0){ alert("Ninguém escalado com telefone"); return; }
     el("modalWhats").style.display="flex";
     const lista = el("listaWhats"); lista.innerHTML="";
