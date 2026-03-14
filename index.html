@@ -731,23 +731,22 @@ async function buscarClima(){
 }
 
 function salvar(){
-    if(modo!=="admin") return;
 
-	console.log("SALVANDO", motoristas, obras);
+if(modo!=="admin") return;
 
-    db.ref("frotaGlobal").update({
-        motoristas: motoristas,
-        obras: obras,
-        agendaMunk: agendaMunk,
-        fluxoPipa: el("pipa-txt").value,
-        historico: historico
-    });
+db.ref("frotaGlobal").update({
+motoristas,
+obras,
+agendaMunk,
+fluxoPipa: el("pipa-txt").value,
+historico
+});
 
 }
 
 function carregarRealtime(){
 
-    db.ref("frotaGlobal").on("value", (snapshot) => {
+    db.ref("frotaGlobal").on("value", snapshot => {
 const dados = snapshot.val() || {};
 
 if(!Array.isArray(dados.motoristas)){
@@ -795,46 +794,6 @@ function abrirConfigObra(i){
     el("buscaVinculo").value="";
     renderBuscaVinculos();
 }
-function salvarConfigObra() {
-
-if (!apenasAdmin()) return;
-
-const obra = obras[obraConfigIndex];
-
-const internaAntes = obra.interna || false;
-const entregaAntes = obra.entrega || false;
-obra.interna = el("tipoInterna").checked;
-obra.entrega = el("tipoEntrega").checked;
-
-/* LIMPAR MOTORISTAS SE DESLIGOU */
-
-if(internaAntes && !el("tipoInterna").checked){
-
-motoristas.forEach(m=>{
-if(m.obra === obra.nome && m.card === "INTERNO"){
-m.obra = "SEM PROGRAMAÇÃO";
-m.card = "INTERNO";
-}
-});
-
-}
-
-if(entregaAntes && !el("tipoEntrega").checked){
-
-motoristas.forEach(m=>{
-if(m.obra === obra.nome && m.card === "ENTREGA"){
-m.obra = "SEM PROGRAMAÇÃO";
-m.card = "INTERNO";
-}
-});
-
-}
-
-salvar();
-render();
-fecharModal();
-
-}
 function renderVinculosAtuais(){
 
 const obra = obras[obraConfigIndex];
@@ -863,6 +822,62 @@ lista.appendChild(div);
 });
 
 }
+	
+function salvarConfigObra(){
+
+if (!apenasAdmin()) return;
+
+const obra = obras[obraConfigIndex];
+
+const internaAntes = obra.interna || false;
+const entregaAntes = obra.entrega || false;
+
+obra.interna = el("tipoInterna").checked;
+obra.entrega = el("tipoEntrega").checked;
+
+/* DESLIGOU OBRA INTERNA */
+
+if(internaAntes && !obra.interna){
+
+motoristas.forEach(m=>{
+
+if(m.obra === obra.nome && m.card === "INTERNO"){
+
+m.status = "ativo";
+m.obsOficina = "";
+m.obra = "SEM PROGRAMAÇÃO";
+m.card = "INTERNO";
+
+}
+
+});
+
+}
+
+/* DESLIGOU ENTREGA */
+
+if(entregaAntes && !obra.entrega){
+
+motoristas.forEach(m=>{
+
+if(m.obra === obra.nome && m.card === "ENTREGA"){
+
+m.status = "ativo";
+m.obsOficina = "";
+m.obra = "SEM PROGRAMAÇÃO";
+m.card = "INTERNO";
+
+}
+
+});
+
+}
+
+salvar();
+render();
+fecharModal();
+
+}
 function removerVinculo(dest){
 
 const obra = obras[obraConfigIndex];
@@ -875,12 +890,12 @@ if(pos !== -1){
 
 obra.destinos.splice(pos,1);
 
-/* MOVE MOTORISTAS DO VINCULO */
-
 motoristas.forEach(m=>{
 
 if(m.obra === obra.nome && m.card === "VINCULO_" + dest){
 
+m.status = "ativo";
+m.obsOficina = "";
 m.obra = "SEM PROGRAMAÇÃO";
 m.card = "INTERNO";
 
@@ -888,11 +903,14 @@ m.card = "INTERNO";
 
 });
 
+salvar();   // ← faltava isso
+
+render();
 renderVinculosAtuais();
 
 }
 
-}
+}	
 function renderBuscaVinculos(){
 
 const busca = (el("buscaVinculo").value || "").toLowerCase();
@@ -1043,6 +1061,7 @@ div.innerHTML = `
 div.onclick = () => toggleSelecionado(i);
 
 lista.appendChild(div);
+
 });
 
 }
@@ -1630,8 +1649,8 @@ if(m.obra === nomeAntigo){
 m.obra = obras[i].nome;
 }
 
-if(m.card && m.card.includes(nomeAntigo)){
-m.card = m.card.replace(nomeAntigo, obras[i].nome);
+if(m.card === "VINCULO_" + nomeAntigo){
+m.card = "VINCULO_" + obras[i].nome;
 }
 });
         salvar();
