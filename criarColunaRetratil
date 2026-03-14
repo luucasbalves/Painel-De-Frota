@@ -136,7 +136,25 @@ navigator.serviceWorker.register("sw.js")
         .coluna h3{ margin:0; padding:15px; cursor:pointer; background:rgba(255,255,255,0.4); display:flex; justify-content:space-between; font-size:14px; }
         .corpo-coluna{ padding:15px; display:none; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; background:white; max-height:300px; overflow-y:auto; }
         .corpo-coluna.aberto{ display:grid; }
-        .caminhao{ background:var(--fundo); padding:12px; border-radius:8px; border:1px solid var(--apoio); cursor:grab; font-size:13px; transition:transform .2s; }
+        .caminhao{
+
+background:white;
+padding:14px;
+border-radius:10px;
+border:1px solid #eee;
+cursor:grab;
+font-size:13px;
+transition:0.2s;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+
+}
+
+.caminhao:hover{
+
+transform:translateY(-2px);
+box-shadow:0 4px 10px rgba(0,0,0,0.15);
+
+}
         .caminhao:active{ transform:scale(1.05); }
         .lateral-fixa{ width:300px; position:sticky; top:90px; }
         .coluna-fixa{ background:white; padding:15px; border-radius:10px; border:1px solid var(--apoio); }
@@ -687,6 +705,7 @@ let modo = "visitante";
     return true;
 }
 	let motoristas = [];
+	let veiculos = [];
 	let obras = [];
 	let agendaMunk = {};
 	let colunasAbertas = { 
@@ -761,13 +780,13 @@ async function buscarClima(){
         climaEl.innerHTML=`${icone} ${temp}°C - ${status.toUpperCase()}`;
     }catch(e){ climaEl.innerText="--°C"; }
 }
-
 function salvar(){
 
 if(modo!=="admin") return;
 
 db.ref("frotaGlobal").update({
 motoristas,
+veiculos,
 obras,
 agendaMunk,
 fluxoPipa: el("pipa-txt").value,
@@ -775,6 +794,8 @@ historico
 });
 
 }
+
+function carregarRealtime(){
 
 function carregarRealtime(){
 
@@ -789,12 +810,17 @@ if(!Array.isArray(dados.obras)){
     dados.obras = [];
 }
         if(dados){
-			
-			motoristas = Array.isArray(dados.motoristas) ? dados.motoristas : [];
+		motoristas = Array.isArray(dados.motoristas) ? dados.motoristas : [];
+veiculos = Array.isArray(dados.veiculos) ? dados.veiculos : [];
 obras = Array.isArray(dados.obras) ? dados.obras : [];
 			motoristas.forEach(m=>{
+
 if(!m.card) m.card="INTERNO";
+
 if(!m.tipo) m.tipo="";
+
+if(!m.veiculoId) m.veiculoId = m.placa || "";
+
 });
 			obras.forEach((o,i)=>{
 if(o.interna === undefined) o.interna = false;
@@ -1237,7 +1263,8 @@ const busca = buscaInput ? buscaInput.value.toLowerCase() : "";
     quadro.innerHTML="";
 	const filtrados = motoristas.filter(m =>
     (m.nome || "").toLowerCase().includes(busca) ||
-    (m.placa || "").toLowerCase().includes(busca)
+    (m.placa || "").toLowerCase().includes(busca) ||
+(veiculos.find(v=>v.id===m.veiculoId)?.placa || "").toLowerCase().includes(busca)
 );
 
     // OFICINA
@@ -1458,10 +1485,14 @@ lista.forEach((m) => {
     card.ondragstart = (e)=>{
         e.dataTransfer.setData("text/plain", i);
     };
-
+	const veiculo = veiculos.find(v=>v.id===m.veiculoId);
     card.innerHTML = `
-        <strong>${m.nome}</strong><br>
-        <small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
+        card.innerHTML = `
+<strong>${m.nome}</strong><br>
+<small>🚚 ${veiculo ? veiculo.placa : ""}</small>
+<br>
+<small>${m.tipo ? "• "+m.tipo : ""}</small>
+`;
         ${m.obsOficina ? `<br><small style="color:red">⚠️ ${m.obsOficina}</small>` : ""}
 		${m.obsAusente ? `<br><small style="color:#e67e22">🚫 ${m.obsAusente}</small>` : ""}
     `;
@@ -1599,16 +1630,24 @@ function novoMotorista(){
 	return;
 	}
 	if(n && p){
-        motoristas.push({
-            nome: n.toUpperCase(),
-            placa: p.toUpperCase(),
-            telefone: t || "",
-			tipo: "",
-            status: "ativo",
-            obra: "SEM PROGRAMAÇÃO",
-			card: "INTERNO",
-            obsOficina: ""
-        });
+        const veiculoId = Date.now();
+
+veiculos.push({
+id:veiculoId,
+placa:p.toUpperCase(),
+tipo:"",
+status:"ativo"
+});
+
+motoristas.push({
+nome: n.toUpperCase(),
+telefone: t || "",
+veiculoId: veiculoId,
+status:"ativo",
+obra:"SEM PROGRAMAÇÃO",
+card:"INTERNO",
+obsOficina:""
+});
 
         salvar();
         render();
@@ -1617,9 +1656,43 @@ function novoMotorista(){
 }
 
 function editarMotorista(i){
-	if(!apenasAdmin()) return;
-    const n = prompt("Nome:", motoristas[i].nome); const p = prompt("Placa:", motoristas[i].placa);
-    if(n && p){ motoristas[i].nome = n.toUpperCase(); motoristas[i].placa = p.toUpperCase(); salvar(); abrirMotoristas(); }
+
+if(!apenasAdmin()) return;
+
+const n = prompt("Nome:", motoristas[i].nome);
+const placa = prompt("Caminhão (placa):");
+
+if(!n || !placa) return;
+
+const placaFormatada = placa.toUpperCase();
+
+/* procura veiculo existente */
+let veiculo = veiculos.find(v => v.placa === placaFormatada);
+
+/* se não existir cria */
+if(!veiculo){
+
+const novoId = Date.now();
+
+veiculo = {
+id: novoId,
+placa: placaFormatada,
+tipo:"",
+status:"ativo"
+};
+
+veiculos.push(veiculo);
+
+}
+
+/* atualiza motorista */
+
+motoristas[i].nome = n.toUpperCase();
+motoristas[i].veiculoId = veiculo.id;
+
+salvar();
+abrirMotoristas();
+
 }
 let motoristaTelefoneIndex = null;	
 function editarTelefone(i){
@@ -1700,6 +1773,7 @@ function filtrarMotoristas(){
     const filtrados = motoristas.filter(m =>
         (m.nome || "").toLowerCase().includes(busca) ||
         (m.placa || "").toLowerCase().includes(busca) ||
+(veiculos.find(v=>v.id===m.veiculoId)?.placa || "").toLowerCase().includes(busca)||
         (m.telefone || "").includes(busca)
     );
 
@@ -1723,7 +1797,7 @@ function filtrarMotoristas(){
         <div>
             <strong>${m.nome}</strong>
             <br>
-            <small>${m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
+            <small>🚚 ${m.veiculoId || m.placa} ${m.tipo ? "• "+m.tipo : ""}</small>
         </div>
 
         <div class="acoes" ${modo!=="admin" ? 'style="display:none"' : ""}>
@@ -1978,7 +2052,16 @@ m.telefone
     esc.forEach(m=>{
         const url=`https://api.whatsapp.com/send?phone=55${m.telefone}&text=${encodeURIComponent("Olá "+m.nome+", sua obra hoje é: "+m.obra)}`;
         const div=document.createElement("div"); div.className="itemLista";
-        div.innerHTML=`<div><strong>${m.nome}</strong><br><small>${m.obra}</small></div><button class="btn-success" onclick="window.open('${url}','_blank')">ENVIAR</button>`;
+		const veiculo = veiculos.find(v=>v.id===m.veiculoId);
+       div.innerHTML=`
+<div>
+<strong>${m.nome}</strong><br>
+<small>${m.obra} • 🚚 ${veiculo ? veiculo.placa : ""}</small>
+</div>
+<button class="btn-success" onclick="window.open('${url}','_blank')">ENVIAR</button>
+`;
+
+<small>${m.obra} • 🚚 ${veiculo ? veiculo.placa : ""}</small></div><button class="btn-success" onclick="window.open('${url}','_blank')">ENVIAR</button>`;
         lista.appendChild(div);
     });
 }
@@ -2027,7 +2110,7 @@ function abrirHistorico(){
     const data = new Date();
 
     historico.unshift({
-        motorista: motorista.nome,
+        motorista: motorista.nome + " (🚚 " + (motorista.veiculoId || motorista.placa) + ")",
         de: de,
         para: para,
         data: data.toLocaleString("pt-BR")
